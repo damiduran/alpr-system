@@ -15,6 +15,8 @@ def load_env():
                 if '=' in line:
                     k, v = line.strip().split('=', 1)
                     os.environ[k] = v
+    else:
+        print("No .env file found. Assuming environment variables are set in the cloud platform.")
 
 class ALPRAgent:
     def __init__(self):

@@ -1,0 +1,13 @@
+__pycache__/
+.git/
+.env
+*.db
+alpr_data/alpr.db
+assets/downloads/
+*.log
+*.csv
+.vscode/
+workspace_map.html
+agent.log
+debug.log
+detections_export.csv

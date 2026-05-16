@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.db
+alpr_data/alpr.db
+assets/
+*.log
+*.csv
+.vscode/

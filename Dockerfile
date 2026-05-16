@@ -16,8 +16,8 @@ COPY . .
 # Ensure the assets and data directories exist
 RUN mkdir -p assets/downloads alpr_data
 
-# The bot doesn't expose a port, but Railway/Render might expect one.
-# For a background worker, we don't necessarily need to EXPOSE.
+# Expose the port for Railway/Render health checks
+EXPOSE 8080
 
 # Run main.py when the container launches
 CMD ["python", "main.py"]

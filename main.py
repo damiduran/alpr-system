@@ -4,11 +4,33 @@ import csv
 import threading
 from queue import Queue
 from datetime import datetime
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from alpr_messaging.telegram_bot import TelegramBot
 from alpr_perception.factory import get_alpr_provider
 from alpr_data.db_manager import DBManager
 
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    """
+    Minimal HTTP server to satisfy Railway/Render health checks.
+    """
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+        self.wfile.write(b"ALPR Agent is alive and monitoring.")
+
+    def log_message(self, format, *args):
+        # Silence default logging to keep deploy logs clean
+        return
+
+def run_health_check_server(port):
+    print(f"--- [SYSTEM] Starting health check server on port {port} ---")
+    server_address = ('', port)
+    httpd = HTTPServer(server_address, HealthCheckHandler)
+    httpd.serve_forever()
+
 def load_env():
+    print("--- [SYSTEM] Initializing environment... ---")
     if os.path.exists('.env'):
         with open('.env') as f:
             for line in f:
@@ -16,19 +38,19 @@ def load_env():
                     k, v = line.strip().split('=', 1)
                     os.environ[k] = v
     else:
-        print("No .env file found. Assuming environment variables are set in the cloud platform.")
+        print("--- [SYSTEM] No .env file found. Using platform environment variables. ---")
 
 class ALPRAgent:
     def __init__(self):
+        print("--- [AGENT] Creating ALPR Agent instance... ---")
         load_env()
-        self.bot = TelegramBot()
-        self.perception = get_alpr_provider()
+        # Note: self.bot and self.perception are initialized in run() to catch FATAL errors
         self.db = DBManager()
         self.queue = Queue()
         self.running = True
 
     def poller(self):
-        print("Starting polling thread...")
+        print("--- [THREADS] Polling thread active. ---")
         while self.running:
             try:
                 updates = self.bot.get_updates()
@@ -36,34 +58,43 @@ class ALPRAgent:
                     self.queue.put(update)
                     self.bot.offset = update['update_id'] + 1
             except Exception as e:
-                print(f"Polling error: {e}")
+                print(f"--- [ERROR] Polling error: {e} ---")
                 time.sleep(4) # Extra wait on error
             
             # Consistent heartbeat delay
             time.sleep(1)
 
     def worker(self):
-        print("Starting worker thread...")
+        print("--- [THREADS] Worker thread active. ---")
         while self.running:
             update = self.queue.get()
             try:
                 self.process_update(update)
             except Exception as e:
-                print(f"Processing error: {e}")
+                print(f"--- [ERROR] Processing error: {e} ---")
             self.queue.task_done()
 
     def run(self):
+        print("--- [STARTUP] ALPR Agent initiating... ---")
         try:
             # Test initialization to catch config errors early
             self.bot = TelegramBot()
             self.perception = get_alpr_provider()
+            print("--- [STARTUP] Bot and Perception Engine ready. ---")
         except Exception as e:
-            print(f"FATAL: Agent configuration error: {e}")
+            print(f"--- [FATAL] Agent configuration error: {e} ---")
             self.running = False
             return
 
+        # Start Health Check Server for Railway
+        port = int(os.getenv("PORT", 8080))
+        threading.Thread(target=run_health_check_server, args=(port,), daemon=True).start()
+
+        print("--- [STARTUP] Spinning up background threads... ---")
         threading.Thread(target=self.poller, daemon=True).start()
         threading.Thread(target=self.worker, daemon=True).start()
+        
+        print("--- [STARTUP] Agent is now fully operational and monitoring. ---")
         while self.running:
             time.sleep(1)
 

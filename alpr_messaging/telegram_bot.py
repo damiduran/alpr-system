@@ -9,6 +9,8 @@ class TelegramBot:
     """
     def __init__(self, token=None):
         self.token = token or os.getenv('TELEGRAM_TOKEN')
+        if not self.token or self.token == 'None':
+            raise ValueError("TELEGRAM_TOKEN is missing or invalid. Check your environment variables.")
         self.base_url = f"https://api.telegram.org/bot{self.token}"
         self.offset = 0
 

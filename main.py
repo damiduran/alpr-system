@@ -35,10 +35,12 @@ class ALPRAgent:
                 for update in updates:
                     self.queue.put(update)
                     self.bot.offset = update['update_id'] + 1
-                time.sleep(1)
             except Exception as e:
                 print(f"Polling error: {e}")
-                time.sleep(5)
+                time.sleep(4) # Extra wait on error
+            
+            # Consistent heartbeat delay
+            time.sleep(1)
 
     def worker(self):
         print("Starting worker thread...")
@@ -51,6 +53,15 @@ class ALPRAgent:
             self.queue.task_done()
 
     def run(self):
+        try:
+            # Test initialization to catch config errors early
+            self.bot = TelegramBot()
+            self.perception = get_alpr_provider()
+        except Exception as e:
+            print(f"FATAL: Agent configuration error: {e}")
+            self.running = False
+            return
+
         threading.Thread(target=self.poller, daemon=True).start()
         threading.Thread(target=self.worker, daemon=True).start()
         while self.running:

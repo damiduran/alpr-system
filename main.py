@@ -114,7 +114,7 @@ class ALPRAgent:
             raw_response = self.perception.recognize_file(local_path)
             result = self.perception.parse_best_result(raw_response)
             if result:
-                self.db.insert_detection(
+                db_id = self.db.insert_detection(
                     plate_number=result['plate'],
                     confidence=result['confidence'],
                     vehicle_make=result['make'],
@@ -128,7 +128,10 @@ class ALPRAgent:
                     image_path=local_path,
                     raw_json=raw_response
                 )
-                self.bot.send_message(chat_id, f"✅ Detected: {result['plate']}")
+                if db_id:
+                    self.bot.send_message(chat_id, f"✅ Detected: {result['plate']} (Saved)")
+                else:
+                    self.bot.send_message(chat_id, f"✅ Detected: {result['plate']} (⚠️ Failed to save to DB)")
             else:
                 self.bot.send_message(chat_id, "❌ No plate detected.")
         elif 'text' in message:
@@ -148,13 +151,18 @@ class ALPRAgent:
                 detections = self.db.get_all_detections()
                 if detections:
                     csv_path = 'detections_export.csv'
-                    with open(csv_path, 'w', newline='') as f:
-                        writer = csv.DictWriter(f, fieldnames=detections[0].keys())
-                        writer.writeheader()
-                        writer.writerows(detections)
-                    self.bot.send_document(chat_id, csv_path)
+                    try:
+                        with open(csv_path, 'w', newline='') as f:
+                            writer = csv.DictWriter(f, fieldnames=detections[0].keys())
+                            writer.writeheader()
+                            writer.writerows(detections)
+                        self.bot.send_message(chat_id, f"📊 Exporting {len(detections)} records...")
+                        self.bot.send_document(chat_id, csv_path)
+                    except Exception as e:
+                        print(f"--- [ERROR] Export failed: {e} ---")
+                        self.bot.send_message(chat_id, "❌ Export failed due to internal error.")
                 else:
-                    self.bot.send_message(chat_id, "No data.")
+                    self.bot.send_message(chat_id, "📭 No detection data available to export.")
 
 if __name__ == "__main__":
     agent = ALPRAgent()

@@ -2,6 +2,7 @@ import os
 import time
 import csv
 import threading
+import pytz
 from queue import Queue
 from datetime import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -44,6 +45,15 @@ class ALPRAgent:
     def __init__(self):
         print("--- [AGENT] Creating ALPR Agent instance... ---")
         load_env()
+        
+        # Load authorized users from .env
+        auth_users_str = os.getenv("AUTHORIZED_USERS", "")
+        self.authorized_users = [int(uid.strip()) for uid in auth_users_str.split(",") if uid.strip()]
+        if self.authorized_users:
+            print(f"--- [SECURITY] Authorization active. Allowed IDs: {self.authorized_users} ---")
+        else:
+            print("--- [SECURITY] WARNING: No AUTHORIZED_USERS set. Bot is public! ---")
+
         # Note: self.bot and self.perception are initialized in run() to catch FATAL errors
         self.db = DBManager()
         self.queue = Queue()
@@ -101,10 +111,18 @@ class ALPRAgent:
     def process_update(self, update):
         message = update.get('message', {})
         chat_id = message.get('chat', {}).get('id')
+
+        # Security: Check if user is authorized
+        if self.authorized_users and chat_id not in self.authorized_users:
+            print(f"--- [SECURITY] Unauthorized access attempt from ID: {chat_id} ---")
+            return
+
         if 'photo' in message:
-            msg_date = datetime.fromtimestamp(message['date'])
-            det_date = msg_date.strftime('%Y-%m-%d')
-            det_time = msg_date.strftime('%H:%M:%S')
+            # Convert UTC timestamp from Telegram to AEST (Australia/Sydney)
+            utc_date = datetime.fromtimestamp(message['date'], tz=pytz.UTC)
+            aest_date = utc_date.astimezone(pytz.timezone('Australia/Sydney'))
+            det_date = aest_date.strftime('%Y-%m-%d')
+            det_time = aest_date.strftime('%H:%M:%S')
             photo = message['photo'][-1]
             file_id = photo['file_id']
             self.bot.send_message(chat_id, "📸 Image received. Analyzing vehicle...")
@@ -143,7 +161,7 @@ class ALPRAgent:
                 if len(parts) > 1:
                     results = self.db.search_by_plate(parts[1])
                     if results:
-                        response = "🔍 Results:\n" + "\n".join([f"- {r['plate_number']} on {r['detection_date']}" for r in results])
+                        response = "🔍 Results:\n" + "\n".join([f"- {r['plate_number']} on {r['detection_date']} at {r['detection_time']}" for r in results])
                         self.bot.send_message(chat_id, response)
                     else:
                         self.bot.send_message(chat_id, "No sightings found.")

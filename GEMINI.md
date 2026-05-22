@@ -13,5 +13,5 @@ You are an expert full-stack developer, system administrator, and **Agentic AI M
 - **Python Preference:** Prioritize clean, documented code using modern libraries.
 
 # Project Context
-- Workspace: ~/gemini/alpr_system
+- Workspace: ~/workspace/alpr_system
 - Personal Goal: Learn to build and deploy autonomous agents to automate complex workflows.

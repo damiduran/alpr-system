@@ -2,6 +2,9 @@ import os
 import json
 from alpr_perception.factory import get_alpr_provider
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DOWNLOAD_DIR = os.path.join(BASE_DIR, 'data', 'downloads')
+
 def load_env():
     if os.path.exists('.env'):
         with open('.env') as f:
@@ -17,13 +20,12 @@ def diagnose():
     client = get_alpr_provider()
     print(f"Using Provider: {type(client).__name__}")
     
-    download_dir = 'data/downloads'
-    if not os.path.exists(download_dir):
-        os.makedirs(download_dir, exist_ok=True)
-    downloads = [f for f in os.listdir(download_dir) if f.endswith('.jpg')]
+    if not os.path.exists(DOWNLOAD_DIR):
+        os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+    downloads = [f for f in os.listdir(DOWNLOAD_DIR) if f.endswith('.jpg')]
     
     for img in downloads:
-        path = os.path.join(download_dir, img)
+        path = os.path.join(DOWNLOAD_DIR, img)
         print(f"\n--- Diagnosing {img} ---")
         raw_response = client.recognize_file(path)
         

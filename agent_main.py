@@ -8,6 +8,9 @@ from alpr_messaging.telegram_bot import TelegramBot
 from alpr_perception.rekor_client import RekorClient
 from alpr_data.db_manager import DBManager
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DOWNLOAD_DIR = os.path.join(BASE_DIR, 'data', 'downloads')
+
 def load_env():
     if os.path.exists('.env'):
         with open('.env') as f:
@@ -73,8 +76,8 @@ class ALPRAgent:
             
             self.bot.send_message(chat_id, "📸 Image received. Analyzing vehicle...")
             
-            os.makedirs('data/downloads', exist_ok=True)
-            local_path = f"data/downloads/{file_id}.jpg"
+            os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+            local_path = os.path.join(DOWNLOAD_DIR, f"{file_id}.jpg")
             self.bot.download_file(file_id, local_path)
             
             raw_response = self.rekor.recognize_file(local_path)

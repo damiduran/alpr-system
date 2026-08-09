@@ -7,16 +7,12 @@ from PIL import Image
 app = Flask(__name__, static_folder='static', static_url_path='')
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'dev_key_for_alpr_dashboard_123')
 
-@app.errorhandler(Exception)
-def handle_exception(e):
-    import traceback
-    return jsonify({
-        "error": str(e),
-        "traceback": traceback.format_exc()
-    }), 500
-
 # Initialize DBManager
 db = DBManager()
+
+# Define absolute paths to ensure consistent file resolution across modules
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DOWNLOAD_DIR = os.path.join(BASE_DIR, 'data', 'downloads')
 
 # Helper decorator for login check
 def login_required(f):
@@ -194,7 +190,7 @@ def export_detections():
 def serve_full_image(file_id):
     # Sanitize file_id to prevent directory traversal
     file_id = os.path.basename(file_id)
-    image_path = f"data/downloads/{file_id}.jpg"
+    image_path = os.path.join(DOWNLOAD_DIR, f"{file_id}.jpg")
     
     if os.path.exists(image_path):
         return send_file(image_path, mimetype='image/jpeg')
@@ -205,13 +201,13 @@ def serve_full_image(file_id):
 def serve_thumbnail(file_id):
     # Sanitize file_id
     file_id = os.path.basename(file_id)
-    source_path = f"data/downloads/{file_id}.jpg"
+    source_path = os.path.join(DOWNLOAD_DIR, f"{file_id}.jpg")
     
     if not os.path.exists(source_path):
         return jsonify({"error": "Source image not found"}), 404
         
     # Paths for thumbnails
-    thumb_dir = "data/downloads/thumbnails"
+    thumb_dir = os.path.join(DOWNLOAD_DIR, 'thumbnails')
     os.makedirs(thumb_dir, exist_ok=True)
     thumb_path = os.path.join(thumb_dir, f"{file_id}.jpg")
     

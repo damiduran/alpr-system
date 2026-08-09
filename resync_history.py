@@ -3,17 +3,19 @@ import json
 from alpr_perception.rekor_client import RekorClient
 from alpr_data.db_manager import DBManager
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DOWNLOAD_DIR = os.path.join(BASE_DIR, 'data', 'downloads')
+
 def resync():
     client = RekorClient()
     db = DBManager()
     
-    download_dir = 'data/downloads'
-    if not os.path.exists(download_dir):
-        os.makedirs(download_dir, exist_ok=True)
-    downloads = [f for f in os.listdir(download_dir) if f.endswith('.jpg')]
+    if not os.path.exists(DOWNLOAD_DIR):
+        os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+    downloads = [f for f in os.listdir(DOWNLOAD_DIR) if f.endswith('.jpg')]
     
     for img in downloads:
-        path = os.path.join(download_dir, img)
+        path = os.path.join(DOWNLOAD_DIR, img)
         print(f"\n--- Resyncing {img} ---")
         
         raw_response = client.recognize_file(path)

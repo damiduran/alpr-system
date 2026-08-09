@@ -50,23 +50,41 @@ class DBManager:
                 conn.execute(users_schema)
                 conn.commit()
                 
-                # Seed default users if table is empty
+                # Seed or update default users with secure passwords from environment
                 cursor = conn.cursor()
-                cursor.execute("SELECT COUNT(*) FROM users")
+                from werkzeug.security import generate_password_hash
+                
+                admin_pass = os.getenv('DASHBOARD_ADMIN_PASSWORD', 'admin123')
+                viewer_pass = os.getenv('DASHBOARD_VIEWER_PASSWORD', 'viewer123')
+                
+                # Setup admin account
+                cursor.execute("SELECT COUNT(*) FROM users WHERE username = 'admin'")
                 if cursor.fetchone()[0] == 0:
-                    from werkzeug.security import generate_password_hash
-                    # admin/admin123
                     cursor.execute(
                         "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
-                        ('admin', generate_password_hash('admin123'), 'admin')
+                        ('admin', generate_password_hash(admin_pass), 'admin')
                     )
-                    # viewer/viewer123
+                    print("--- [DATABASE] Seeded admin user ---")
+                else:
+                    cursor.execute(
+                        "UPDATE users SET password_hash = ? WHERE username = 'admin'",
+                        (generate_password_hash(admin_pass),)
+                    )
+                    
+                # Setup viewer account
+                cursor.execute("SELECT COUNT(*) FROM users WHERE username = 'viewer'")
+                if cursor.fetchone()[0] == 0:
                     cursor.execute(
                         "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
-                        ('viewer', generate_password_hash('viewer123'), 'viewer')
+                        ('viewer', generate_password_hash(viewer_pass), 'viewer')
                     )
-                    conn.commit()
-                    print("--- [DATABASE] Seeded default users (admin/viewer) ---")
+                    print("--- [DATABASE] Seeded viewer user ---")
+                else:
+                    cursor.execute(
+                        "UPDATE users SET password_hash = ? WHERE username = 'viewer'",
+                        (generate_password_hash(viewer_pass),)
+                    )
+                conn.commit()
         except Exception as e:
             print(f"Error initializing tables: {e}")
 

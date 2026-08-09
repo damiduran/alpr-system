@@ -236,8 +236,8 @@ h1, h2, h3, .brand h1, .brand h2 {
 }
 
 .brand-logo-large {
-    max-height: 80px;
-    max-width: 240px;
+    max-height: 120px;
+    max-width: 340px;
     object-fit: contain;
     filter: drop-shadow(0 0 15px hsla(41, 73%, 61%, 0.3));
     animation: pulseGlow 4s ease-in-out infinite alternate;
@@ -389,8 +389,8 @@ header {
 }
 
 .brand-logo-small {
-    max-height: 34px;
-    max-width: 120px;
+    max-height: 48px;
+    max-width: 170px;
     object-fit: contain;
     margin-right: 14px;
     filter: drop-shadow(0 0 4px hsla(41, 73%, 61%, 0.2));

@@ -606,6 +606,37 @@ th {
     font-weight: 600;
 }
 
+.sortable-header {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+}
+
+.sortable-header:hover {
+    background-color: hsla(224, 20%, 25%, 0.4);
+}
+
+.sortable-header i {
+    margin-left: 6px;
+    font-size: 0.8rem;
+    transition: color 0.2s ease;
+}
+
+.sort-icon-disabled {
+    color: var(--color-text-dim);
+    opacity: 0.3;
+}
+
+.sortable-header:hover .sort-icon-disabled {
+    opacity: 0.7;
+    color: var(--color-accent);
+}
+
+.sort-icon-active {
+    color: var(--color-accent) !important;
+    text-shadow: 0 0 8px rgba(0, 242, 254, 0.4);
+}
+
 td {
     padding: 16px 24px;
     border-bottom: 1px solid var(--color-glass-border);

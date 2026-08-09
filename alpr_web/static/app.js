@@ -6,6 +6,7 @@
 const state = {
     user: null,
     detections: [],
+    originalDetections: [],
     searchQuery: '',
     visibleColumns: [
         'plate_number',
@@ -15,7 +16,9 @@ const state = {
         'vehicle_color',
         'detection_date',
         'detection_time'
-    ]
+    ],
+    sortBy: null,
+    sortOrder: 'none' // 'asc', 'desc', 'none'
 };
 
 // Column Label Map
@@ -247,6 +250,9 @@ function transitionToDashboard(user) {
 function transitionToLogin() {
     state.user = null;
     state.detections = [];
+    state.originalDetections = [];
+    state.sortBy = null;
+    state.sortOrder = 'none';
     dom.deleteBtn.classList.add('hidden');
     dom.dashboardView.classList.remove('active');
     dom.loginView.classList.add('active');
@@ -281,7 +287,17 @@ function renderTableHeaders() {
     let html = '<th><input type="checkbox" id="select-all-checkbox"></th><th>Thumbnail</th>';
     state.visibleColumns.forEach(col => {
         const label = columnLabels[col] || col;
-        html += `<th>${label}</th>`;
+        let iconHtml = '<i class="fa-solid fa-sort sort-icon-disabled"></i>';
+        
+        if (state.sortBy === col) {
+            if (state.sortOrder === 'asc') {
+                iconHtml = '<i class="fa-solid fa-sort-up sort-icon-active"></i>';
+            } else if (state.sortOrder === 'desc') {
+                iconHtml = '<i class="fa-solid fa-sort-down sort-icon-active"></i>';
+            }
+        }
+        
+        html += `<th class="sortable-header" data-column="${col}">${label} ${iconHtml}</th>`;
     });
     dom.tableHeaders.innerHTML = html;
     
@@ -296,6 +312,87 @@ function renderTableHeaders() {
             });
         });
     }
+
+    // Bind column sort click handlers
+    const headers = dom.tableHeaders.querySelectorAll('.sortable-header');
+    headers.forEach(header => {
+        header.addEventListener('click', () => {
+            const col = header.dataset.column;
+            handleSortClick(col);
+        });
+    });
+}
+
+function handleSortClick(col) {
+    if (state.sortBy === col) {
+        if (state.sortOrder === 'none') {
+            state.sortOrder = 'asc';
+        } else if (state.sortOrder === 'asc') {
+            state.sortOrder = 'desc';
+        } else {
+            state.sortOrder = 'none';
+            state.sortBy = null;
+        }
+    } else {
+        state.sortBy = col;
+        state.sortOrder = 'asc';
+    }
+    
+    sortDetections();
+    renderTableHeaders();
+    renderTableBody();
+}
+
+function sortDetections() {
+    if (!state.sortBy || state.sortOrder === 'none') {
+        state.detections = [...state.originalDetections];
+        return;
+    }
+
+    const col = state.sortBy;
+    const isAsc = state.sortOrder === 'asc';
+
+    state.detections.sort((a, b) => {
+        // Special case: Sighting Date (sort time in same direction if date is equal)
+        if (col === 'detection_date') {
+            const dateA = a.detection_date || '';
+            const dateB = b.detection_date || '';
+            if (dateA !== dateB) {
+                return isAsc ? dateA.localeCompare(dateB) : dateB.localeCompare(dateA);
+            }
+            const timeA = a.detection_time || '';
+            const timeB = b.detection_time || '';
+            return isAsc ? timeA.localeCompare(timeB) : timeB.localeCompare(timeA);
+        }
+
+        // Special case: Sighting Time (sort date in same direction if time is equal)
+        if (col === 'detection_time') {
+            const timeA = a.detection_time || '';
+            const timeB = b.detection_time || '';
+            if (timeA !== timeB) {
+                return isAsc ? timeA.localeCompare(timeB) : timeB.localeCompare(timeA);
+            }
+            const dateA = a.detection_date || '';
+            const dateB = b.detection_date || '';
+            return isAsc ? dateA.localeCompare(dateB) : dateB.localeCompare(dateA);
+        }
+
+        // Default sorting for other columns
+        let valA = a[col];
+        let valB = b[col];
+
+        // Handle numeric sorting for confidence
+        if (col === 'confidence') {
+            const numA = valA !== null && valA !== undefined ? parseFloat(valA) : -1;
+            const numB = valB !== null && valB !== undefined ? parseFloat(valB) : -1;
+            return isAsc ? numA - numB : numB - numA;
+        }
+
+        // Fallback to string sorting
+        const strA = (valA !== null && valA !== undefined ? valA : '').toString().toLowerCase();
+        const strB = (valB !== null && valB !== undefined ? valB : '').toString().toLowerCase();
+        return isAsc ? strA.localeCompare(strB) : strB.localeCompare(strA);
+    });
 }
 
 // --- DATA FETCHING & RENDER ---
@@ -327,7 +424,8 @@ async function fetchDetections() {
         }
         
         const data = await response.json();
-        state.detections = data;
+        state.originalDetections = data;
+        sortDetections();
         renderTableBody();
     } catch (e) {
         console.error('Failed to load database logs:', e);

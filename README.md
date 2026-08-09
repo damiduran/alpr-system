@@ -1,6 +1,11 @@
-# Autonomous ALPR Agent (V2.0)
+# Autonomous ALPR Agent (v2.1.0 - Cloud-Ready Persistence Edition)
 
 An autonomous agent that monitors a Telegram channel, performs License Plate Recognition (LPR), and maintains a searchable vehicle sighting database.
+
+## 📌 Release Notes (v2.1.0)
+* **Decoupled Database Persistence:** Migrated the SQLite storage from the package folder (`alpr_data/`) to a root `data/` directory to support persistent Docker/Railway volume mounts.
+* **Environment Configuration:** Added support for the `DB_PATH` environment variable to configure the database file location dynamically.
+* **Automatic Directory Creation:** Improved startup safety by dynamically creating the storage directory at boot time.
 
 ## 🚀 Overview
 This agent is built using a **Multi-Threaded Worker Pattern**. It listens for vehicle images via the Telegram Bot API, processes them through a pluggable perception engine (Rekor or Plate Recognizer), and stores high-fidelity vehicle metadata in a local SQLite database.

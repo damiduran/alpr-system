@@ -19,7 +19,7 @@ class DBManager:
         return sqlite3.connect(self.db_path)
 
     def _ensure_tables(self):
-        schema = """
+        detections_schema = """
         CREATE TABLE IF NOT EXISTS detections (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             plate_number TEXT NOT NULL,
@@ -36,10 +36,37 @@ class DBManager:
             raw_json TEXT
         );
         """
+        users_schema = """
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'viewer'
+        );
+        """
         try:
             with self._get_connection() as conn:
-                conn.execute(schema)
+                conn.execute(detections_schema)
+                conn.execute(users_schema)
                 conn.commit()
+                
+                # Seed default users if table is empty
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) FROM users")
+                if cursor.fetchone()[0] == 0:
+                    from werkzeug.security import generate_password_hash
+                    # admin/admin123
+                    cursor.execute(
+                        "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+                        ('admin', generate_password_hash('admin123'), 'admin')
+                    )
+                    # viewer/viewer123
+                    cursor.execute(
+                        "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+                        ('viewer', generate_password_hash('viewer123'), 'viewer')
+                    )
+                    conn.commit()
+                    print("--- [DATABASE] Seeded default users (admin/viewer) ---")
         except Exception as e:
             print(f"Error initializing tables: {e}")
 
@@ -105,6 +132,64 @@ class DBManager:
         except Exception as e:
             print(f"Error searching by plate: {e}")
             return []
+
+    def validate_user(self, username, password):
+        from werkzeug.security import check_password_hash
+        query = "SELECT id, username, password_hash, role FROM users WHERE username = ?"
+        try:
+            with self._get_connection() as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute(query, (username,))
+                row = cursor.fetchone()
+                if row and check_password_hash(row['password_hash'], password):
+                    return {
+                        "id": row['id'],
+                        "username": row['username'],
+                        "role": row['role']
+                    }
+        except Exception as e:
+            print(f"Error validating user: {e}")
+        return None
+
+    def get_user_by_id(self, user_id):
+        query = "SELECT id, username, role FROM users WHERE id = ?"
+        try:
+            with self._get_connection() as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute(query, (user_id,))
+                row = cursor.fetchone()
+                if row:
+                    return dict(row)
+        except Exception as e:
+            print(f"Error fetching user by ID: {e}")
+        return None
+
+    def get_all_users(self):
+        query = "SELECT id, username, role FROM users"
+        try:
+            with self._get_connection() as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute(query)
+                return [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            print(f"Error fetching all users: {e}")
+        return []
+
+    def add_user(self, username, password, role='viewer'):
+        from werkzeug.security import generate_password_hash
+        query = "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)"
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (username, generate_password_hash(password), role))
+                conn.commit()
+                return cursor.lastrowid
+        except Exception as e:
+            print(f"Error adding user: {e}")
+            return None
 
 if __name__ == "__main__":
     # Quick Test

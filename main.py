@@ -5,30 +5,14 @@ import threading
 import pytz
 from queue import Queue
 from datetime import datetime
-from http.server import HTTPServer, BaseHTTPRequestHandler
 from alpr_messaging.telegram_bot import TelegramBot
 from alpr_perception.factory import get_alpr_provider
 from alpr_data.db_manager import DBManager
 
-class HealthCheckHandler(BaseHTTPRequestHandler):
-    """
-    Minimal HTTP server to satisfy Railway/Render health checks.
-    """
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'text/plain')
-        self.end_headers()
-        self.wfile.write(b"ALPR Agent is alive and monitoring.")
-
-    def log_message(self, format, *args):
-        # Silence default logging to keep deploy logs clean
-        return
-
-def run_health_check_server(port):
-    print(f"--- [SYSTEM] Starting health check server on port {port} ---")
-    server_address = ('', port)
-    httpd = HTTPServer(server_address, HealthCheckHandler)
-    httpd.serve_forever()
+def run_web_server(port):
+    print(f"--- [SYSTEM] Starting ALPR Web Dashboard Server on port {port} ---")
+    from alpr_web.app import app as web_app
+    web_app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
 
 def load_env():
     print("--- [SYSTEM] Initializing environment... ---")
@@ -96,9 +80,9 @@ class ALPRAgent:
             self.running = False
             return
 
-        # Start Health Check Server for Railway
+        # Start Web Dashboard Server (which handles Railway health checks on /)
         port = int(os.getenv("PORT", 8080))
-        threading.Thread(target=run_health_check_server, args=(port,), daemon=True).start()
+        threading.Thread(target=run_web_server, args=(port,), daemon=True).start()
 
         print("--- [STARTUP] Spinning up background threads... ---")
         threading.Thread(target=self.poller, daemon=True).start()

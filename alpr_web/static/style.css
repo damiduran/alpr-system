@@ -1,0 +1,813 @@
+/* ==========================================================================
+   ALPR System v3.0 - CSS Design Tokens & Layout System
+   ========================================================================== */
+
+:root {
+    /* HSL Color Tokens */
+    --color-bg-deep: hsl(224, 25%, 8%);
+    --color-bg-dark: hsl(224, 20%, 12%);
+    --color-glass-surface: hsla(224, 20%, 15%, 0.55);
+    --color-glass-border: hsla(0, 0%, 100%, 0.06);
+    --color-glass-border-focus: hsla(250, 80%, 65%, 0.35);
+    
+    --color-primary: hsl(250, 80%, 65%);
+    --color-primary-hover: hsl(250, 85%, 70%);
+    --color-accent-blue: hsl(200, 85%, 55%);
+    --color-accent-teal: hsl(170, 75%, 50%);
+    
+    --color-text-main: hsl(220, 15%, 95%);
+    --color-text-muted: hsl(220, 10%, 65%);
+    --color-text-dim: hsl(220, 10%, 45%);
+    
+    --color-success: hsl(145, 65%, 50%);
+    --color-warning: hsl(35, 80%, 55%);
+    --color-danger: hsl(350, 75%, 55%);
+
+    /* Shadows & Transitions */
+    --shadow-premium: 0 16px 40px -10px hsla(224, 40%, 4%, 0.7);
+    --shadow-glow-purple: 0 0 25px -5px hsla(250, 80%, 65%, 0.25);
+    --transition-smooth: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    --border-radius-lg: 16px;
+    --border-radius-md: 10px;
+    --border-radius-sm: 6px;
+}
+
+/* ==========================================================================
+   Resets & Base Layout
+   ========================================================================== */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--color-bg-deep);
+    color: var(--color-text-main);
+    overflow-x: hidden;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+h1, h2, h3, .brand h1, .brand h2 {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+}
+
+/* ==========================================================================
+   Background Decorators (Glows)
+   ========================================================================== */
+
+.glow-sphere {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(140px);
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.glow-1 {
+    top: -10%;
+    right: 15%;
+    width: 450px;
+    height: 450px;
+    background: radial-gradient(circle, hsla(250, 80%, 65%, 0.15) 0%, transparent 70%);
+}
+
+.glow-2 {
+    bottom: 10%;
+    left: 10%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, hsla(170, 75%, 50%, 0.12) 0%, transparent 70%);
+}
+
+/* ==========================================================================
+   Glassmorphism Helper Utility
+   ========================================================================== */
+
+.glass {
+    background: var(--color-glass-surface);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--color-glass-border);
+    box-shadow: var(--shadow-premium);
+}
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 500;
+    font-size: 0.95rem;
+    padding: 10px 20px;
+    border-radius: var(--border-radius-md);
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    border: 1px solid transparent;
+}
+
+.btn-primary {
+    background-color: var(--color-primary);
+    color: #fff;
+    box-shadow: var(--shadow-glow-purple);
+}
+
+.btn-primary:hover {
+    background-color: var(--color-primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 0 30px -2px hsla(250, 80%, 65%, 0.4);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-secondary {
+    background-color: hsla(220, 10%, 25%, 0.4);
+    border: 1px solid var(--color-glass-border);
+    color: var(--color-text-main);
+}
+
+.btn-secondary:hover {
+    background-color: hsla(220, 10%, 30%, 0.6);
+    color: #fff;
+}
+
+.btn-glass {
+    background-color: hsla(0, 0%, 100%, 0.03);
+    border: 1px solid var(--color-glass-border);
+    color: var(--color-text-muted);
+}
+
+.btn-glass:hover {
+    background-color: hsla(0, 0%, 100%, 0.07);
+    color: var(--color-text-main);
+}
+
+.btn-block {
+    display: flex;
+    width: 100%;
+}
+
+/* ==========================================================================
+   1. Login View
+   ========================================================================== */
+
+#login-view {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+#login-view.active {
+    display: flex;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 40px;
+    border-radius: var(--border-radius-lg);
+    background: var(--color-glass-surface);
+    backdrop-filter: blur(24px);
+    border: 1px solid var(--color-glass-border);
+    box-shadow: var(--shadow-premium);
+    animation: fadeInScale 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.96) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.brand {
+    text-align: center;
+    margin-bottom: 35px;
+}
+
+.brand-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent-blue) 100%);
+    color: #fff;
+    font-size: 1.6rem;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-glow-purple);
+}
+
+.brand h1 {
+    font-size: 1.8rem;
+    letter-spacing: 1px;
+    color: var(--color-text-main);
+}
+
+.brand h1 span {
+    color: var(--color-primary-hover);
+    font-weight: 800;
+}
+
+.brand p {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin-top: 6px;
+}
+
+.form-group {
+    margin-bottom: 24px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--color-text-muted);
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-wrapper i {
+    position: absolute;
+    left: 16px;
+    color: var(--color-text-dim);
+    font-size: 1rem;
+    transition: var(--transition-smooth);
+}
+
+.input-wrapper input {
+    width: 100%;
+    padding: 12px 16px 12px 48px;
+    background-color: hsla(220, 20%, 8%, 0.4);
+    border: 1px solid var(--color-glass-border);
+    border-radius: var(--border-radius-md);
+    color: var(--color-text-main);
+    font-size: 0.95rem;
+    outline: none;
+    transition: var(--transition-smooth);
+}
+
+.input-wrapper input::placeholder {
+    color: var(--color-text-dim);
+}
+
+.input-wrapper input:focus {
+    border-color: var(--color-primary);
+    background-color: hsla(220, 20%, 8%, 0.7);
+    box-shadow: 0 0 0 3px hsla(250, 80%, 65%, 0.15);
+}
+
+.input-wrapper input:focus + i {
+    color: var(--color-primary-hover);
+}
+
+.error-msg {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-danger);
+    background-color: hsla(350, 75%, 55%, 0.1);
+    border: 1px solid hsla(350, 75%, 55%, 0.25);
+    padding: 10px 14px;
+    border-radius: var(--border-radius-md);
+    font-size: 0.85rem;
+    margin-bottom: 24px;
+    animation: shake 0.3s ease;
+}
+
+.error-msg.hidden {
+    display: none;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}
+
+/* ==========================================================================
+   2. Dashboard Layout
+   ========================================================================== */
+
+#dashboard-view {
+    display: none;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+#dashboard-view.active {
+    display: flex;
+}
+
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 40px;
+    background: hsla(224, 25%, 8%, 0.75);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--color-glass-border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.brand-icon-small {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent-blue) 100%);
+    color: #fff;
+    font-size: 1rem;
+    margin-right: 12px;
+}
+
+header .brand {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0;
+}
+
+header .brand h2 {
+    font-size: 1.3rem;
+    color: var(--color-text-main);
+    letter-spacing: 0.5px;
+}
+
+header .brand h2 span {
+    font-weight: 800;
+    color: var(--color-primary-hover);
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+#username-display {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--color-text-main);
+}
+
+.role-badge {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    border: 1px solid transparent;
+}
+
+.role-badge.admin {
+    background-color: hsla(250, 80%, 65%, 0.15);
+    border-color: hsla(250, 80%, 65%, 0.3);
+    color: hsl(250, 85%, 75%);
+}
+
+.role-badge.viewer {
+    background-color: hsla(220, 10%, 65%, 0.1);
+    border-color: hsla(220, 10%, 65%, 0.2);
+    color: var(--color-text-muted);
+}
+
+/* ==========================================================================
+   Dashboard Content & Control Panel
+   ========================================================================== */
+
+.dashboard-content {
+    flex: 1;
+    padding: 30px 40px;
+    max-width: 1600px;
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.control-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-radius: var(--border-radius-lg);
+}
+
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 320px;
+}
+
+.search-box i {
+    position: absolute;
+    left: 16px;
+    color: var(--color-text-dim);
+}
+
+.search-box input {
+    width: 100%;
+    padding: 10px 16px 10px 44px;
+    background-color: hsla(220, 20%, 8%, 0.4);
+    border: 1px solid var(--color-glass-border);
+    border-radius: var(--border-radius-md);
+    color: var(--color-text-main);
+    font-size: 0.9rem;
+    outline: none;
+    transition: var(--transition-smooth);
+}
+
+.search-box input:focus {
+    border-color: var(--color-primary);
+    background-color: hsla(220, 20%, 8%, 0.7);
+    box-shadow: 0 0 0 3px hsla(250, 80%, 65%, 0.12);
+}
+
+.control-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Column Selector Dropdown Menu */
+.column-selector-container {
+    position: relative;
+}
+
+.dropdown-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    width: 240px;
+    padding: 16px;
+    border-radius: var(--border-radius-lg);
+    background: hsla(224, 25%, 12%, 0.95);
+    border: 1px solid var(--color-glass-border);
+    box-shadow: var(--shadow-premium);
+    z-index: 50;
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.dropdown-menu.hidden {
+    display: none;
+}
+
+.dropdown-menu h3 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-dim);
+    margin-bottom: 4px;
+}
+
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    user-select: none;
+    transition: var(--transition-smooth);
+    padding: 2px 0;
+}
+
+.checkbox-group label:hover {
+    color: var(--color-text-main);
+}
+
+.checkbox-group input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background-color: hsla(220, 20%, 8%, 0.6);
+    border: 1px solid var(--color-glass-border);
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-smooth);
+}
+
+.checkbox-group input[type="checkbox"]:checked {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary-hover);
+}
+
+.checkbox-group input[type="checkbox"]:checked::after {
+    content: "\f00c";
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    color: #fff;
+    font-size: 0.6rem;
+}
+
+/* ==========================================================================
+   Data Table Section
+   ========================================================================== */
+
+.table-container {
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    flex: 1;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+th {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-muted);
+    padding: 16px 24px;
+    background-color: hsla(224, 20%, 14%, 0.3);
+    border-bottom: 1px solid var(--color-glass-border);
+    font-weight: 600;
+}
+
+td {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--color-glass-border);
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    vertical-align: middle;
+    transition: var(--transition-smooth);
+}
+
+tbody tr {
+    transition: var(--transition-smooth);
+}
+
+tbody tr:hover {
+    background-color: hsla(0, 0%, 100%, 0.015);
+}
+
+tbody tr:hover td {
+    color: var(--color-text-main);
+}
+
+/* Thumbnail layout */
+.vehicle-thumbnail {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--color-glass-border);
+    cursor: pointer;
+    background-color: hsla(220, 20%, 8%, 0.4);
+    position: relative;
+    transition: var(--transition-smooth);
+}
+
+.vehicle-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: var(--transition-smooth);
+}
+
+.vehicle-thumbnail:hover {
+    transform: scale(1.08);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 10px hsla(250, 80%, 65%, 0.25);
+}
+
+.vehicle-thumbnail:hover img {
+    filter: brightness(1.1);
+}
+
+/* Highlight badge for plates */
+.plate-badge {
+    display: inline-block;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    background-color: hsla(220, 20%, 5%, 0.5);
+    border: 1px solid var(--color-glass-border);
+    color: var(--color-text-main);
+    padding: 4px 10px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Confidence indicators */
+.conf-high { color: var(--color-success); font-weight: 500; }
+.conf-med { color: var(--color-warning); font-weight: 500; }
+.conf-low { color: var(--color-danger); font-weight: 500; }
+
+.text-center { text-align: center; }
+
+/* ==========================================================================
+   3. Image Modal Viewer
+   ========================================================================== */
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(6, 8, 14, 0.8);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    animation: fadeIn 0.25s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-close {
+    position: absolute;
+    top: 24px;
+    right: 32px;
+    color: var(--color-text-muted);
+    font-size: 2.2rem;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    user-select: none;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: hsla(0, 0%, 100%, 0.03);
+    border: 1px solid var(--color-glass-border);
+}
+
+.modal-close:hover {
+    color: #fff;
+    background-color: hsla(350, 75%, 55%, 0.15);
+    border-color: hsla(350, 75%, 55%, 0.3);
+}
+
+.modal-content {
+    width: 100%;
+    max-width: 900px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    animation: scaleUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes scaleUp {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.modal-image-container {
+    width: 100%;
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--color-glass-border);
+    overflow: hidden;
+    box-shadow: var(--shadow-premium);
+    background-color: #000;
+    aspect-ratio: 16/9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.modal-image-container img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+}
+
+/* Spinner */
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3.5px solid hsla(0, 0%, 100%, 0.07);
+    border-top-color: var(--color-primary-hover);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    position: absolute;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.modal-info {
+    border-radius: var(--border-radius-lg);
+    padding: 20px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.modal-info-row {
+    display: flex;
+    gap: 40px;
+}
+
+.info-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.info-item label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-dim);
+}
+
+.info-item span {
+    font-size: 1.05rem;
+    color: var(--color-text-main);
+    font-weight: 500;
+}
+
+.info-item span.highlight {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.5px;
+}

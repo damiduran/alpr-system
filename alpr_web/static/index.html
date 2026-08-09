@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALPR Intelligence Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for modern icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Background decorative glows -->
+        <div class="glow-sphere glow-1"></div>
+        <div class="glow-sphere glow-2"></div>
+
+        <!-- 1. LOGIN SCREEN -->
+        <div id="login-view" class="view active">
+            <div class="login-card">
+                <div class="brand">
+                    <div class="brand-icon">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <h1>ALPR <span>SECURE</span></h1>
+                    <p>Enter credentials to access surveillance logs</p>
+                </div>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <div class="input-wrapper">
+                            <i class="fa-regular fa-user"></i>
+                            <input type="text" id="username" placeholder="Enter username" required autocomplete="username">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="input-wrapper">
+                            <i class="fa-regular fa-key"></i>
+                            <input type="password" id="password" placeholder="Enter password" required autocomplete="current-password">
+                        </div>
+                    </div>
+                    <div id="login-error" class="error-msg hidden">
+                        <i class="fa-solid fa-circle-exclamation"></i> <span id="error-text"></span>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <span>Authenticate</span> <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 2. MAIN DASHBOARD VIEW -->
+        <div id="dashboard-view" class="view">
+            <!-- Header bar -->
+            <header>
+                <div class="header-left">
+                    <div class="brand">
+                        <div class="brand-icon-small">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                        <h2>ALPR <span>System v3.0</span></h2>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="user-profile">
+                        <span id="user-badge" class="role-badge">Role</span>
+                        <span id="username-display">Username</span>
+                    </div>
+                    <button id="logout-btn" class="btn btn-secondary">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i> <span>Logout</span>
+                    </button>
+                </div>
+            </header>
+
+            <main class="dashboard-content">
+                <!-- Control Panel Card -->
+                <section class="control-panel glass">
+                    <div class="control-left">
+                        <div class="search-box">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="search-plate" placeholder="Search license plate...">
+                        </div>
+                    </div>
+                    <div class="control-right">
+                        <!-- Column Selector Dropdown -->
+                        <div class="column-selector-container">
+                            <button id="col-selector-trigger" class="btn btn-glass">
+                                <i class="fa-solid fa-table-columns"></i> <span>Columns</span> <i class="fa-solid fa-chevron-down"></i>
+                            </button>
+                            <div id="col-selector-dropdown" class="dropdown-menu hidden">
+                                <h3>Select Visible Columns</h3>
+                                <div class="checkbox-group">
+                                    <label><input type="checkbox" value="plate_number" checked> Plate Number</label>
+                                    <label><input type="checkbox" value="confidence" checked> Confidence</label>
+                                    <label><input type="checkbox" value="vehicle_make" checked> Make</label>
+                                    <label><input type="checkbox" value="vehicle_model" checked> Model</label>
+                                    <label><input type="checkbox" value="vehicle_color" checked> Color</label>
+                                    <label><input type="checkbox" value="body_type" checked> Body Type</label>
+                                    <label><input type="checkbox" value="orientation" checked> Orientation</label>
+                                    <label><input type="checkbox" value="year" checked> Year</label>
+                                    <label><input type="checkbox" value="detection_date" checked> Sighting Date</label>
+                                    <label><input type="checkbox" value="detection_time" checked> Sighting Time</label>
+                                </div>
+                            </div>
+                        </div>
+                        <button id="refresh-btn" class="btn btn-glass">
+                            <i class="fa-solid fa-rotate"></i>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Data Table Card -->
+                <section class="table-container glass">
+                    <table id="detections-table">
+                        <thead>
+                            <tr id="table-headers">
+                                <th>Thumbnail</th>
+                                <th>Plate Number</th>
+                                <th>Confidence</th>
+                                <th>Make</th>
+                                <th>Model</th>
+                                <th>Color</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <!-- Injected dynamically -->
+                            <tr>
+                                <td colspan="8" class="text-center">Loading sightings database...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+            </main>
+        </div>
+
+        <!-- 3. IMAGE VIEWER MODAL -->
+        <div id="image-modal" class="modal">
+            <span class="modal-close">&times;</span>
+            <div class="modal-content">
+                <div class="modal-image-container">
+                    <img id="modal-image" src="" alt="Full-size Vehicle Image">
+                    <div id="modal-loading" class="spinner"></div>
+                </div>
+                <div class="modal-info glass">
+                    <div class="modal-info-row">
+                        <div class="info-item">
+                            <label>License Plate</label>
+                            <span id="modal-plate" class="highlight">---</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Confidence</label>
+                            <span id="modal-confidence">---</span>
+                        </div>
+                    </div>
+                    <div class="modal-info-row">
+                        <div class="info-item">
+                            <label>Vehicle Specs</label>
+                            <span id="modal-vehicle">---</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Sighting Timestamp</label>
+                            <span id="modal-timestamp">---</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Frontend logic -->
+    <script src="app.js"></script>
+</body>
+</html>

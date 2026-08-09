@@ -3,29 +3,33 @@
    ========================================================================== */
 
 :root {
-    /* HSL Color Tokens */
-    --color-bg-deep: hsl(224, 25%, 8%);
-    --color-bg-dark: hsl(224, 20%, 12%);
-    --color-glass-surface: hsla(224, 20%, 15%, 0.55);
-    --color-glass-border: hsla(0, 0%, 100%, 0.06);
-    --color-glass-border-focus: hsla(250, 80%, 65%, 0.35);
+    /* HSL Color Tokens - Redesigned for Evergrand Gold/Bronze Palette */
+    --color-bg-deep: hsl(40, 15%, 7%);
+    --color-bg-dark: hsl(40, 12%, 11%);
+    --color-glass-surface: hsla(40, 12%, 14%, 0.55);
+    --color-glass-border: hsla(41, 40%, 80%, 0.06);
+    --color-glass-border-focus: hsla(41, 73%, 61%, 0.35);
     
-    --color-primary: hsl(250, 80%, 65%);
-    --color-primary-hover: hsl(250, 85%, 70%);
-    --color-accent-blue: hsl(200, 85%, 55%);
-    --color-accent-teal: hsl(170, 75%, 50%);
+    --color-primary: hsl(41, 73%, 61%);
+    --color-primary-hover: hsl(41, 85%, 68%);
+    --color-accent: hsl(41, 73%, 61%);
+    --color-accent-blue: hsl(41, 85%, 68%); /* fallbacks for blue gradients */
+    --color-accent-teal: hsl(41, 68%, 37%); /* fallbacks for teal gradients */
+    --color-accent-gold: hsl(41, 73%, 61%);
+    --color-accent-bronze: hsl(41, 68%, 37%);
+    --color-accent-cream: hsl(45, 60%, 75%);
     
-    --color-text-main: hsl(220, 15%, 95%);
-    --color-text-muted: hsl(220, 10%, 65%);
-    --color-text-dim: hsl(220, 10%, 45%);
+    --color-text-main: hsl(40, 15%, 95%);
+    --color-text-muted: hsl(40, 10%, 70%);
+    --color-text-dim: hsl(40, 8%, 50%);
     
     --color-success: hsl(145, 65%, 50%);
-    --color-warning: hsl(35, 80%, 55%);
+    --color-warning: hsl(41, 73%, 61%);
     --color-danger: hsl(350, 75%, 55%);
 
     /* Shadows & Transitions */
-    --shadow-premium: 0 16px 40px -10px hsla(224, 40%, 4%, 0.7);
-    --shadow-glow-purple: 0 0 25px -5px hsla(250, 80%, 65%, 0.25);
+    --shadow-premium: 0 16px 40px -10px hsla(40, 30%, 3%, 0.85);
+    --shadow-glow-gold: 0 0 25px -5px hsla(41, 73%, 61%, 0.25);
     --transition-smooth: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     --border-radius-lg: 16px;
     --border-radius-md: 10px;
@@ -79,7 +83,7 @@ h1, h2, h3, .brand h1, .brand h2 {
     right: 15%;
     width: 450px;
     height: 450px;
-    background: radial-gradient(circle, hsla(250, 80%, 65%, 0.15) 0%, transparent 70%);
+    background: radial-gradient(circle, hsla(41, 73%, 61%, 0.12) 0%, transparent 70%);
 }
 
 .glow-2 {
@@ -87,7 +91,7 @@ h1, h2, h3, .brand h1, .brand h2 {
     left: 10%;
     width: 400px;
     height: 400px;
-    background: radial-gradient(circle, hsla(170, 75%, 50%, 0.12) 0%, transparent 70%);
+    background: radial-gradient(circle, hsla(35, 80%, 55%, 0.08) 0%, transparent 70%);
 }
 
 /* ==========================================================================
@@ -124,13 +128,13 @@ h1, h2, h3, .brand h1, .brand h2 {
 .btn-primary {
     background-color: var(--color-primary);
     color: #fff;
-    box-shadow: var(--shadow-glow-purple);
+    box-shadow: var(--shadow-glow-gold);
 }
 
 .btn-primary:hover {
     background-color: var(--color-primary-hover);
     transform: translateY(-2px);
-    box-shadow: 0 0 30px -2px hsla(250, 80%, 65%, 0.4);
+    box-shadow: 0 0 30px -2px hsla(41, 73%, 61%, 0.45);
 }
 
 .btn-primary:active {
@@ -224,6 +228,30 @@ h1, h2, h3, .brand h1, .brand h2 {
     margin-bottom: 35px;
 }
 
+.brand-logo-container {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.brand-logo-large {
+    max-height: 80px;
+    max-width: 240px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 15px hsla(41, 73%, 61%, 0.3));
+    animation: pulseGlow 4s ease-in-out infinite alternate;
+}
+
+@keyframes pulseGlow {
+    from {
+        filter: drop-shadow(0 0 8px hsla(41, 73%, 61%, 0.2));
+    }
+    to {
+        filter: drop-shadow(0 0 20px hsla(41, 73%, 61%, 0.45));
+    }
+}
+
 .brand-icon {
     display: inline-flex;
     align-items: center;
@@ -235,7 +263,7 @@ h1, h2, h3, .brand h1, .brand h2 {
     color: #fff;
     font-size: 1.6rem;
     margin-bottom: 16px;
-    box-shadow: var(--shadow-glow-purple);
+    box-shadow: var(--shadow-glow-gold);
 }
 
 .brand h1 {
@@ -358,6 +386,14 @@ header {
     position: sticky;
     top: 0;
     z-index: 100;
+}
+
+.brand-logo-small {
+    max-height: 34px;
+    max-width: 120px;
+    object-fit: contain;
+    margin-right: 14px;
+    filter: drop-shadow(0 0 4px hsla(41, 73%, 61%, 0.2));
 }
 
 .brand-icon-small {

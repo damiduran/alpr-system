@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Ensure the assets and data directories exist
-RUN mkdir -p assets/downloads data
+RUN mkdir -p data/downloads
 
 # Expose the port for Railway/Render health checks
 EXPOSE 8080

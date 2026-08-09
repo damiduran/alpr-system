@@ -73,8 +73,8 @@ class ALPRAgent:
             
             self.bot.send_message(chat_id, "📸 Image received. Analyzing vehicle...")
             
-            os.makedirs('assets/downloads', exist_ok=True)
-            local_path = f"assets/downloads/{file_id}.jpg"
+            os.makedirs('data/downloads', exist_ok=True)
+            local_path = f"data/downloads/{file_id}.jpg"
             self.bot.download_file(file_id, local_path)
             
             raw_response = self.rekor.recognize_file(local_path)

@@ -17,10 +17,13 @@ def diagnose():
     client = get_alpr_provider()
     print(f"Using Provider: {type(client).__name__}")
     
-    downloads = [f for f in os.listdir('assets/downloads') if f.endswith('.jpg')]
+    download_dir = 'data/downloads'
+    if not os.path.exists(download_dir):
+        os.makedirs(download_dir, exist_ok=True)
+    downloads = [f for f in os.listdir(download_dir) if f.endswith('.jpg')]
     
     for img in downloads:
-        path = os.path.join('assets/downloads', img)
+        path = os.path.join(download_dir, img)
         print(f"\n--- Diagnosing {img} ---")
         raw_response = client.recognize_file(path)
         

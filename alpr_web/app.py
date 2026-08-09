@@ -186,7 +186,7 @@ def export_detections():
 def serve_full_image(file_id):
     # Sanitize file_id to prevent directory traversal
     file_id = os.path.basename(file_id)
-    image_path = f"assets/downloads/{file_id}.jpg"
+    image_path = f"data/downloads/{file_id}.jpg"
     
     if os.path.exists(image_path):
         return send_file(image_path, mimetype='image/jpeg')
@@ -197,13 +197,13 @@ def serve_full_image(file_id):
 def serve_thumbnail(file_id):
     # Sanitize file_id
     file_id = os.path.basename(file_id)
-    source_path = f"assets/downloads/{file_id}.jpg"
+    source_path = f"data/downloads/{file_id}.jpg"
     
     if not os.path.exists(source_path):
         return jsonify({"error": "Source image not found"}), 404
         
     # Paths for thumbnails
-    thumb_dir = "assets/downloads/thumbnails"
+    thumb_dir = "data/downloads/thumbnails"
     os.makedirs(thumb_dir, exist_ok=True)
     thumb_path = os.path.join(thumb_dir, f"{file_id}.jpg")
     

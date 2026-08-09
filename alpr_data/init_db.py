@@ -1,7 +1,7 @@
 import sqlite3
 import os
 
-DB_PATH = 'alpr_data/alpr.db'
+DB_PATH = os.getenv('DB_PATH', 'data/alpr.db')
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS detections (
@@ -24,6 +24,9 @@ CREATE TABLE IF NOT EXISTS detections (
 def init_db():
     print(f"Initializing database at {DB_PATH}...")
     try:
+        db_dir = os.path.dirname(DB_PATH)
+        if db_dir:
+            os.makedirs(db_dir, exist_ok=True)
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.executescript(SCHEMA)

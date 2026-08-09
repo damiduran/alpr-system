@@ -3,6 +3,7 @@ __pycache__/
 .env
 *.db
 alpr_data/alpr.db
+data/
 assets/downloads/
 *.log
 *.csv

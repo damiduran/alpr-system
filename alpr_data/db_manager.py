@@ -1,9 +1,18 @@
+import os
 import sqlite3
 import json
 
 class DBManager:
-    def __init__(self, db_path='alpr_data/alpr.db'):
+    def __init__(self, db_path=None):
+        if db_path is None:
+            db_path = os.getenv('DB_PATH', 'data/alpr.db')
         self.db_path = db_path
+        
+        # Ensure parent directory exists
+        db_dir = os.path.dirname(self.db_path)
+        if db_dir:
+            os.makedirs(db_dir, exist_ok=True)
+            
         self._ensure_tables()
 
     def _get_connection(self):

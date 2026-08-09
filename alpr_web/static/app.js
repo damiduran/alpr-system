@@ -203,7 +203,12 @@ function registerEventListeners() {
     // Export Button Click (Admin & Viewer)
     dom.exportBtn.addEventListener('click', () => {
         const queryParams = new URLSearchParams();
-        if (state.searchQuery) {
+        const checkedBoxes = dom.tableBody.querySelectorAll('.row-checkbox:checked');
+        
+        if (checkedBoxes.length > 0) {
+            const ids = Array.from(checkedBoxes).map(cb => cb.value).join(',');
+            queryParams.append('ids', ids);
+        } else if (state.searchQuery) {
             queryParams.append('plate', state.searchQuery);
         }
         window.location.href = `/api/detections/export?${queryParams.toString()}`;

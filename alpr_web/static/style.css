@@ -488,6 +488,8 @@ header .brand h2 span {
     justify-content: space-between;
     padding: 16px 24px;
     border-radius: var(--border-radius-lg);
+    position: relative;
+    z-index: 10;
 }
 
 .search-box {

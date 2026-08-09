@@ -162,8 +162,18 @@ def export_detections():
     import io
     from flask import Response
     
+    ids_filter = request.args.get('ids', '').strip()
     plate_filter = request.args.get('plate', '').strip()
-    if plate_filter:
+    
+    if ids_filter:
+        try:
+            id_list = [int(i.strip()) for i in ids_filter.split(',') if i.strip()]
+            all_detections = db.get_all_detections()
+            detections = [d for d in all_detections if d.get('id') in id_list]
+        except Exception as e:
+            print(f"Error parsing IDs for export: {e}")
+            detections = []
+    elif plate_filter:
         detections = db.search_by_plate(plate_filter)
     else:
         detections = db.get_all_detections()

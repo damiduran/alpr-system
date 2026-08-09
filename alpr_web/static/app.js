@@ -219,6 +219,25 @@ function registerEventListeners() {
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') closeModal();
     });
+
+    // Image Zoom Click Toggle
+    dom.modalImage.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent closing the modal
+        toggleImageZoom(e);
+    });
+
+    // Image Panning on Mouse Move (when zoomed)
+    const imgContainer = dom.modalImage.parentElement;
+    if (imgContainer) {
+        imgContainer.addEventListener('mousemove', (e) => {
+            if (dom.modalImage.classList.contains('zoomed')) {
+                const rect = imgContainer.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                dom.modalImage.style.transformOrigin = `${x}% ${y}%`;
+            }
+        });
+    }
 }
 
 function showLoginError(message) {
@@ -507,6 +526,7 @@ function renderTableBody() {
 // --- IMAGE MODAL CONTROLLERS ---
 
 function openModal(fileId, recordId) {
+    resetImageZoom();
     // Find record details in local cache
     const item = state.detections.find(d => d.id === recordId);
     if (!item) return;
@@ -560,4 +580,29 @@ function openModal(fileId, recordId) {
 function closeModal() {
     dom.imageModal.classList.remove('active');
     dom.modalImage.src = '';
+    resetImageZoom();
+}
+
+// --- IMAGE ZOOM HELPER FUNCTIONS ---
+
+function toggleImageZoom(e) {
+    if (dom.modalImage.classList.contains('zoomed')) {
+        resetImageZoom();
+    } else {
+        dom.modalImage.classList.add('zoomed');
+        // Set initial zoom origin on click coordinate
+        const container = dom.modalImage.parentElement;
+        if (container) {
+            const rect = container.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            dom.modalImage.style.transformOrigin = `${x}% ${y}%`;
+        }
+    }
+}
+
+function resetImageZoom() {
+    dom.modalImage.classList.remove('zoomed');
+    dom.modalImage.style.transform = '';
+    dom.modalImage.style.transformOrigin = '';
 }

@@ -138,6 +138,47 @@ def get_detections():
             
     return jsonify(processed)
 
+@app.route('/api/detections/delete', methods=['POST'])
+@admin_required
+def delete_detections():
+    data = request.get_json() or {}
+    ids = data.get('ids', [])
+    if not ids:
+        return jsonify({"error": "No IDs provided"}), 400
+    
+    success = db.delete_detections(ids)
+    if success:
+        return jsonify({"message": f"Successfully deleted {len(ids)} records"})
+    return jsonify({"error": "Failed to delete records"}), 500
+
+@app.route('/api/detections/export', methods=['GET'])
+@login_required
+def export_detections():
+    import csv
+    import io
+    from flask import Response
+    
+    plate_filter = request.args.get('plate', '').strip()
+    if plate_filter:
+        detections = db.search_by_plate(plate_filter)
+    else:
+        detections = db.get_all_detections()
+        
+    output = io.StringIO()
+    if not detections:
+        # Empty export with headers
+        headers = ["id", "plate_number", "confidence", "vehicle_make", "vehicle_model", "vehicle_color", "body_type", "orientation", "year", "detection_date", "detection_time", "image_path"]
+        writer = csv.writer(output)
+        writer.writerow(headers)
+    else:
+        writer = csv.DictWriter(output, fieldnames=detections[0].keys())
+        writer.writeheader()
+        writer.writerows(detections)
+        
+    response = Response(output.getvalue(), mimetype='text/csv')
+    response.headers["Content-Disposition"] = "attachment; filename=alpr_detections_export.csv"
+    return response
+
 # --- MEDIA SERVICE API ---
 
 @app.route('/api/media/full/<file_id>', methods=['GET'])

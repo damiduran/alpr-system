@@ -87,6 +87,16 @@
                         </div>
                     </div>
                     <div class="control-right">
+                        <!-- Delete Selected Button (Admin Only) -->
+                        <button id="delete-btn" class="btn btn-danger hidden">
+                            <i class="fa-solid fa-trash-can"></i> <span>Delete</span>
+                        </button>
+                        
+                        <!-- Export Logs Button (Admin & Viewer) -->
+                        <button id="export-btn" class="btn btn-glass">
+                            <i class="fa-solid fa-file-export"></i> <span>Export</span>
+                        </button>
+
                         <!-- Column Selector Dropdown -->
                         <div class="column-selector-container">
                             <button id="col-selector-trigger" class="btn btn-glass">
@@ -119,6 +129,7 @@
                     <table id="detections-table">
                         <thead>
                             <tr id="table-headers">
+                                <th><input type="checkbox" id="select-all-checkbox"></th>
                                 <th>Thumbnail</th>
                                 <th>Plate Number</th>
                                 <th>Confidence</th>

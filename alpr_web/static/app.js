@@ -45,6 +45,8 @@ const dom = {
     usernameDisplay: document.getElementById('username-display'),
     userBadge: document.getElementById('user-badge'),
     logoutBtn: document.getElementById('logout-btn'),
+    deleteBtn: document.getElementById('delete-btn'),
+    exportBtn: document.getElementById('export-btn'),
     
     searchPlate: document.getElementById('search-plate'),
     refreshBtn: document.getElementById('refresh-btn'),
@@ -158,6 +160,52 @@ function registerEventListeners() {
         fetchDetections();
     });
 
+    // Delete Button Click (Admin only)
+    dom.deleteBtn.addEventListener('click', async () => {
+        const checkedBoxes = dom.tableBody.querySelectorAll('.row-checkbox:checked');
+        if (checkedBoxes.length === 0) {
+            alert('Please select at least one sighting to delete.');
+            return;
+        }
+
+        const ids = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
+        const confirmMsg = `Are you sure you want to delete the ${ids.length} selected record(s) from the database? This action is permanent.`;
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/detections/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids })
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                // Reset master checkbox if checked
+                const selectAll = document.getElementById('select-all-checkbox');
+                if (selectAll) selectAll.checked = false;
+                
+                fetchDetections();
+            } else {
+                alert(data.error || 'Failed to delete records.');
+            }
+        } catch (e) {
+            console.error('Delete API call failed:', e);
+            alert('Network error. Failed to reach server.');
+        }
+    });
+
+    // Export Button Click (Admin & Viewer)
+    dom.exportBtn.addEventListener('click', () => {
+        const queryParams = new URLSearchParams();
+        if (state.searchQuery) {
+            queryParams.append('plate', state.searchQuery);
+        }
+        window.location.href = `/api/detections/export?${queryParams.toString()}`;
+    });
+
     // Image Modal Close
     dom.modalClose.addEventListener('click', () => closeModal());
     dom.imageModal.addEventListener('click', (e) => {
@@ -183,6 +231,13 @@ function transitionToDashboard(user) {
     dom.userBadge.innerText = user.role;
     dom.userBadge.className = `role-badge ${user.role}`;
     
+    // Toggle delete button visibility based on role (Admin only)
+    if (user.role === 'admin') {
+        dom.deleteBtn.classList.remove('hidden');
+    } else {
+        dom.deleteBtn.classList.add('hidden');
+    }
+    
     dom.loginView.classList.remove('active');
     dom.dashboardView.classList.add('active');
     
@@ -192,6 +247,7 @@ function transitionToDashboard(user) {
 function transitionToLogin() {
     state.user = null;
     state.detections = [];
+    dom.deleteBtn.classList.add('hidden');
     dom.dashboardView.classList.remove('active');
     dom.loginView.classList.add('active');
 }
@@ -221,13 +277,25 @@ function initColumnCheckboxes() {
 }
 
 function renderTableHeaders() {
-    // Table always has "Thumbnail" as the first column
-    let html = '<th>Thumbnail</th>';
+    // Table always has a checkbox and "Thumbnail" as the first columns
+    let html = '<th><input type="checkbox" id="select-all-checkbox"></th><th>Thumbnail</th>';
     state.visibleColumns.forEach(col => {
         const label = columnLabels[col] || col;
         html += `<th>${label}</th>`;
     });
     dom.tableHeaders.innerHTML = html;
+    
+    // Bind event listener to the newly rendered select-all checkbox
+    const selectAll = document.getElementById('select-all-checkbox');
+    if (selectAll) {
+        selectAll.checked = false;
+        selectAll.addEventListener('change', (e) => {
+            const checkboxes = dom.tableBody.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = e.target.checked;
+            });
+        });
+    }
 }
 
 // --- DATA FETCHING & RENDER ---
@@ -247,7 +315,7 @@ async function fetchDetections() {
     }
     
     try {
-        dom.tableBody.innerHTML = `<tr><td colspan="${state.visibleColumns.length + 1}" class="text-center">Loading sightings database...</td></tr>`;
+        dom.tableBody.innerHTML = `<tr><td colspan="${state.visibleColumns.length + 2}" class="text-center">Loading sightings database...</td></tr>`;
         
         const response = await fetch(`/api/detections?${params.toString()}`);
         if (!response.ok) {
@@ -263,19 +331,30 @@ async function fetchDetections() {
         renderTableBody();
     } catch (e) {
         console.error('Failed to load database logs:', e);
-        dom.tableBody.innerHTML = `<tr><td colspan="${state.visibleColumns.length + 1}" class="text-center" style="color: var(--color-danger);"><i class="fa-solid fa-circle-xmark"></i> Failed to query database logs.</td></tr>`;
+        dom.tableBody.innerHTML = `<tr><td colspan="${state.visibleColumns.length + 2}" class="text-center" style="color: var(--color-danger);"><i class="fa-solid fa-circle-xmark"></i> Failed to query database logs.</td></tr>`;
     }
 }
 
 function renderTableBody() {
     if (state.detections.length === 0) {
-        dom.tableBody.innerHTML = `<tr><td colspan="${state.visibleColumns.length + 1}" class="text-center">No sightings found matching filters.</td></tr>`;
+        dom.tableBody.innerHTML = `<tr><td colspan="${state.visibleColumns.length + 2}" class="text-center">No sightings found matching filters.</td></tr>`;
         return;
     }
+    
+    // Reset select-all checkbox when reloading content
+    const selectAll = document.getElementById('select-all-checkbox');
+    if (selectAll) selectAll.checked = false;
     
     let html = '';
     state.detections.forEach(item => {
         html += `<tr class="table-row-hover">`;
+        
+        // 0. Row Selection Checkbox
+        html += `
+            <td>
+                <input type="checkbox" class="row-checkbox" value="${item.id}" onclick="event.stopPropagation()">
+            </td>
+        `;
         
         // 1. Thumbnail rendering
         if (item.file_id) {

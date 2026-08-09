@@ -191,6 +191,23 @@ class DBManager:
             print(f"Error adding user: {e}")
             return None
 
+    def delete_detections(self, ids):
+        if not ids:
+            return False
+        try:
+            # Cast all ids to integers for safety
+            sanitized_ids = [int(i) for i in ids]
+            placeholders = ','.join('?' for _ in sanitized_ids)
+            query = f"DELETE FROM detections WHERE id IN ({placeholders})"
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, sanitized_ids)
+                conn.commit()
+                return True
+        except Exception as e:
+            print(f"Error deleting detections: {e}")
+            return False
+
 if __name__ == "__main__":
     # Quick Test
     db = DBManager()

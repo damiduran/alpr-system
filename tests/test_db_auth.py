@@ -55,5 +55,28 @@ class TestDBAuth(unittest.TestCase):
         self.assertIn('admin', usernames)
         self.assertIn('viewer', usernames)
 
+    def test_detections_deletion(self):
+        # Insert test detections
+        id1 = self.db.insert_detection(plate_number="PLATE1", confidence=90.0)
+        id2 = self.db.insert_detection(plate_number="PLATE2", confidence=85.0)
+        id3 = self.db.insert_detection(plate_number="PLATE3", confidence=95.0)
+        
+        self.assertIsNotNone(id1)
+        self.assertIsNotNone(id2)
+        self.assertIsNotNone(id3)
+        
+        # Verify they exist
+        all_det = self.db.get_all_detections()
+        self.assertEqual(len(all_det), 3)
+        
+        # Delete first two
+        success = self.db.delete_detections([id1, id2])
+        self.assertTrue(success)
+        
+        # Verify remaining
+        remaining = self.db.get_all_detections()
+        self.assertEqual(len(remaining), 1)
+        self.assertEqual(remaining[0]['id'], id3)
+
 if __name__ == '__main__':
     unittest.main()

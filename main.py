@@ -24,7 +24,8 @@ def run_web_server(port):
     asgi_app = Starlette()
     
     # Mount the MCP server's SSE application at /mcp
-    asgi_app.mount("/mcp", mcp_server.sse_app())
+    # Pass host="0.0.0.0" to prevent DNS rebinding check failures (HTTP 421) under cloud ingress load balancers
+    asgi_app.mount("/mcp", mcp_server.sse_app(host="0.0.0.0"))
     
     # Mount the Flask WSGI application at the root /
     asgi_app.mount("/", WSGIMiddleware(flask_app))

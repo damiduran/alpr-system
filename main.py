@@ -13,9 +13,25 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DOWNLOAD_DIR = os.path.join(BASE_DIR, 'data', 'downloads')
 
 def run_web_server(port):
-    print(f"--- [SYSTEM] Starting ALPR Web Dashboard Server on port {port} ---")
-    from alpr_web.app import app as web_app
-    web_app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
+    print(f"--- [SYSTEM] Starting Unified ASGI Server (Flask + MCP) on port {port} ---")
+    import uvicorn
+    from starlette.applications import Starlette
+    from starlette.middleware.wsgi import WSGIMiddleware
+    from alpr_web.app import app as flask_app
+    from alpr_mcp_server import server as mcp_server
+    
+    # Create the root Starlette application
+    asgi_app = Starlette()
+    
+    # Mount the MCP server's SSE application at /mcp
+    asgi_app.mount("/mcp", mcp_server.sse_app())
+    
+    # Mount the Flask WSGI application at the root /
+    asgi_app.mount("/", WSGIMiddleware(flask_app))
+    
+    # Run the server using uvicorn on host 0.0.0.0
+    uvicorn.run(asgi_app, host='0.0.0.0', port=port, log_level="info")
+
 
 def load_env():
     print("--- [SYSTEM] Initializing environment... ---")

@@ -10,6 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
     <!-- FontAwesome for modern icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Identity Services JS Library -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">
 </head>
@@ -27,30 +29,26 @@
                         <img src="EvergrandT.png" alt="Evergrand Logo" class="brand-logo-large">
                     </div>
                     <h1>ALPR <span>SECURE</span></h1>
-                    <p>Enter credentials to access surveillance logs</p>
+                    <p>Sign in with your authorized Google account to access surveillance logs</p>
                 </div>
-                <form id="login-form">
-                    <div class="form-group">
-                        <label for="username">Username</label>
-                        <div class="input-wrapper">
-                            <i class="fa-regular fa-user"></i>
-                            <input type="text" id="username" placeholder="Enter username" required autocomplete="username">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <div class="input-wrapper">
-                            <i class="fa-regular fa-key"></i>
-                            <input type="password" id="password" placeholder="Enter password" required autocomplete="current-password">
-                        </div>
+                <div class="login- divider"></div>
+                <div class="auth-actions">
+                    <div id="login-warning" class="error-msg warning-msg hidden">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <span>Google Auth not configured. Set <code>GOOGLE_CLIENT_ID</code> in <code>.env</code>.</span>
                     </div>
                     <div id="login-error" class="error-msg hidden">
                         <i class="fa-solid fa-circle-exclamation"></i> <span id="error-text"></span>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-block">
-                        <span>Authenticate</span> <i class="fa-solid fa-arrow-right"></i>
-                    </button>
-                </form>
+                    <div id="login-loading" class="login-status hidden">
+                        <div class="spinner-small"></div>
+                        <span>Verifying session with Google...</span>
+                    </div>
+                    <div id="google-signin-btn" class="google-btn-container"></div>
+                </div>
+                <p class="login-footer-note">
+                    Protected by Evergrand Strata Management protocol.
+                </p>
             </div>
         </div>
 

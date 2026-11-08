@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import requests
 from flask import Flask, request, jsonify, session, send_file, redirect, url_for
 from alpr_data.db_manager import DBManager
 from PIL import Image
@@ -13,6 +14,60 @@ db = DBManager()
 # Define absolute paths to ensure consistent file resolution across modules
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOWNLOAD_DIR = os.path.join(BASE_DIR, 'data', 'downloads')
+
+
+def get_google_client_id() -> str:
+    return os.getenv('GOOGLE_CLIENT_ID', '').strip()
+
+
+def get_allowed_role_for_email(email: str):
+    """
+    Determines the dashboard role ('admin' or 'viewer') for a verified Google email.
+    Checks ALLOWED_ADMIN_EMAILS (falling back to ALLOWED_EMAILS) for admin privileges,
+    and ALLOWED_VIEWER_EMAILS for viewer-only privileges.
+    """
+    normalized = (email or '').strip().lower()
+    if not normalized:
+        return None
+
+    admin_raw = os.getenv('ALLOWED_ADMIN_EMAILS', os.getenv('ALLOWED_EMAILS', ''))
+    admin_emails = [e.strip().lower() for e in admin_raw.split(',') if e.strip()]
+    if normalized in admin_emails:
+        return 'admin'
+
+    viewer_raw = os.getenv('ALLOWED_VIEWER_EMAILS', '')
+    viewer_emails = [e.strip().lower() for e in viewer_raw.split(',') if e.strip()]
+    if normalized in viewer_emails:
+        return 'viewer'
+
+    return None
+
+
+def verify_google_id_token(token: str, client_id: str) -> dict:
+    """
+    Verifies a Google Identity Services ID token via Google's tokeninfo endpoint.
+    Raises ValueError on invalid token/audience, or RuntimeError on network failure.
+    """
+    try:
+        res = requests.get(
+            "https://oauth2.googleapis.com/tokeninfo",
+            params={"id_token": token},
+            timeout=10.0
+        )
+    except Exception as e:
+        raise RuntimeError(f"Failed to reach Google token verification service: {e}")
+
+    if res.status_code != 200:
+        raise ValueError("Invalid Google credential token.")
+
+    token_info = res.json()
+    if token_info.get("aud") != client_id:
+        raise ValueError("Token audience mismatch.")
+
+    if token_info.get("email_verified") not in ("true", True):
+        raise ValueError("Google account email is not verified.")
+
+    return token_info
 
 # Helper decorator for login check
 def login_required(f):
@@ -43,30 +98,49 @@ def index():
     # The client-side JS handles checking /api/auth/me to decide what screen to display.
     return send_file(os.path.join(app.static_folder, 'index.html'))
 
-# --- AUTH API ---
+# --- AUTH API (Google OAuth 2.0) ---
 
-@app.route('/api/auth/login', methods=['POST'])
-def auth_login():
+@app.route('/api/auth/config', methods=['GET'])
+def auth_config():
+    return jsonify({
+        "google_client_id": get_google_client_id()
+    })
+
+@app.route('/api/auth/google', methods=['POST'])
+def auth_google():
     data = request.get_json() or {}
-    username = data.get('username')
-    password = data.get('password')
-    
-    if not username or not password:
-        return jsonify({"error": "Username and password required"}), 400
-        
-    user = db.validate_user(username, password)
-    if user:
-        session['user_id'] = user['id']
-        session['username'] = user['username']
-        session['role'] = user['role']
+    token = (data.get('credential') or '').strip()
+    if not token:
+        return jsonify({"error": "Google credential token is required."}), 400
+
+    client_id = get_google_client_id()
+    if not client_id:
         return jsonify({
-            "message": "Login successful",
-            "user": {
-                "username": user['username'],
-                "role": user['role']
-            }
-        })
-    return jsonify({"error": "Invalid username or password"}), 401
+            "error": "Google Authentication is not configured on this server (missing GOOGLE_CLIENT_ID)."
+        }), 500
+
+    try:
+        token_info = verify_google_id_token(token, client_id)
+    except RuntimeError as e:
+        return jsonify({"error": str(e)}), 503
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+    email = token_info.get("email", "").strip().lower()
+    role = get_allowed_role_for_email(email)
+    if not role:
+        return jsonify({"error": f"Unauthorized email address: {email}"}), 403
+
+    session['user_id'] = email
+    session['username'] = email
+    session['role'] = role
+    return jsonify({
+        "message": "Login successful",
+        "user": {
+            "username": email,
+            "role": role
+        }
+    })
 
 @app.route('/api/auth/logout', methods=['POST'])
 def auth_logout():

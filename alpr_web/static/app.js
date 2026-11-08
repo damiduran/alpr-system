@@ -39,9 +39,9 @@ const columnLabels = {
 const dom = {
     loginView: document.getElementById('login-view'),
     dashboardView: document.getElementById('dashboard-view'),
-    loginForm: document.getElementById('login-form'),
-    usernameInput: document.getElementById('username'),
-    passwordInput: document.getElementById('password'),
+    googleSigninBtn: document.getElementById('google-signin-btn'),
+    loginWarning: document.getElementById('login-warning'),
+    loginLoading: document.getElementById('login-loading'),
     loginError: document.getElementById('login-error'),
     errorText: document.getElementById('error-text'),
     
@@ -72,12 +72,79 @@ const dom = {
 
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
+    initGoogleSignIn();
     checkSession();
     registerEventListeners();
     initColumnCheckboxes();
 });
 
-// --- AUTHENTICATION FLOWS ---
+// --- AUTHENTICATION FLOWS (Google OAuth 2.0) ---
+
+async function initGoogleSignIn() {
+    try {
+        const res = await fetch('/api/auth/config');
+        const cfg = await res.json();
+        const clientId = (cfg.google_client_id || '').trim();
+        if (!clientId) {
+            if (dom.loginWarning) dom.loginWarning.classList.remove('hidden');
+            return;
+        }
+        renderGoogleButtonWithRetry(clientId, 0);
+    } catch (e) {
+        console.error('Failed to fetch Google Auth config:', e);
+    }
+}
+
+function renderGoogleButtonWithRetry(clientId, attempt) {
+    if (window.google && window.google.accounts && window.google.accounts.id) {
+        window.google.accounts.id.initialize({
+            client_id: clientId,
+            callback: handleGoogleCredentialResponse,
+            context: 'signin',
+            ux_mode: 'popup',
+            auto_select: false,
+            itp_support: true
+        });
+        if (dom.googleSigninBtn) {
+            window.google.accounts.id.renderButton(dom.googleSigninBtn, {
+                theme: 'outline',
+                size: 'large',
+                width: 340,
+                text: 'signin_with',
+                shape: 'rectangular',
+                logo_alignment: 'left'
+            });
+        }
+    } else if (attempt < 25) {
+        setTimeout(() => renderGoogleButtonWithRetry(clientId, attempt + 1), 200);
+    }
+}
+
+async function handleGoogleCredentialResponse(response) {
+    dom.loginError.classList.add('hidden');
+    if (dom.loginLoading) dom.loginLoading.classList.remove('hidden');
+    if (dom.googleSigninBtn) dom.googleSigninBtn.classList.add('hidden');
+
+    try {
+        const res = await fetch('/api/auth/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential: response.credential })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            transitionToDashboard(data.user);
+        } else {
+            showLoginError(data.error || 'Authentication failed. Access denied.');
+        }
+    } catch (err) {
+        showLoginError('Network error. Cannot reach server.');
+    } finally {
+        if (dom.loginLoading) dom.loginLoading.classList.add('hidden');
+        if (dom.googleSigninBtn) dom.googleSigninBtn.classList.remove('hidden');
+    }
+}
 
 async function checkSession() {
     try {
@@ -96,33 +163,6 @@ async function checkSession() {
 }
 
 function registerEventListeners() {
-    // Login Submit
-    dom.loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        dom.loginError.classList.add('hidden');
-        
-        const username = dom.usernameInput.value;
-        const password = dom.passwordInput.value;
-        
-        try {
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-            const data = await response.json();
-            
-            if (response.ok) {
-                dom.passwordInput.value = '';
-                transitionToDashboard(data.user);
-            } else {
-                showLoginError(data.error || 'Authentication failed');
-            }
-        } catch (err) {
-            showLoginError('Network error. Cannot reach server.');
-        }
-    });
-
     // Logout Click
     dom.logoutBtn.addEventListener('click', async () => {
         try {

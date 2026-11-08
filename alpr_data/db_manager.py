@@ -36,54 +36,9 @@ class DBManager:
             raw_json TEXT
         );
         """
-        users_schema = """
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            role TEXT NOT NULL DEFAULT 'viewer'
-        );
-        """
         try:
             with self._get_connection() as conn:
                 conn.execute(detections_schema)
-                conn.execute(users_schema)
-                conn.commit()
-                
-                # Seed or update default users with secure passwords from environment
-                cursor = conn.cursor()
-                from werkzeug.security import generate_password_hash
-                
-                admin_pass = os.getenv('DASHBOARD_ADMIN_PASSWORD', 'admin123')
-                viewer_pass = os.getenv('DASHBOARD_VIEWER_PASSWORD', 'viewer123')
-                
-                # Setup admin account
-                cursor.execute("SELECT COUNT(*) FROM users WHERE username = 'admin'")
-                if cursor.fetchone()[0] == 0:
-                    cursor.execute(
-                        "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
-                        ('admin', generate_password_hash(admin_pass), 'admin')
-                    )
-                    print("--- [DATABASE] Seeded admin user ---")
-                else:
-                    cursor.execute(
-                        "UPDATE users SET password_hash = ? WHERE username = 'admin'",
-                        (generate_password_hash(admin_pass),)
-                    )
-                    
-                # Setup viewer account
-                cursor.execute("SELECT COUNT(*) FROM users WHERE username = 'viewer'")
-                if cursor.fetchone()[0] == 0:
-                    cursor.execute(
-                        "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
-                        ('viewer', generate_password_hash(viewer_pass), 'viewer')
-                    )
-                    print("--- [DATABASE] Seeded viewer user ---")
-                else:
-                    cursor.execute(
-                        "UPDATE users SET password_hash = ? WHERE username = 'viewer'",
-                        (generate_password_hash(viewer_pass),)
-                    )
                 conn.commit()
         except Exception as e:
             print(f"Error initializing tables: {e}")
@@ -150,64 +105,6 @@ class DBManager:
         except Exception as e:
             print(f"Error searching by plate: {e}")
             return []
-
-    def validate_user(self, username, password):
-        from werkzeug.security import check_password_hash
-        query = "SELECT id, username, password_hash, role FROM users WHERE username = ?"
-        try:
-            with self._get_connection() as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.cursor()
-                cursor.execute(query, (username,))
-                row = cursor.fetchone()
-                if row and check_password_hash(row['password_hash'], password):
-                    return {
-                        "id": row['id'],
-                        "username": row['username'],
-                        "role": row['role']
-                    }
-        except Exception as e:
-            print(f"Error validating user: {e}")
-        return None
-
-    def get_user_by_id(self, user_id):
-        query = "SELECT id, username, role FROM users WHERE id = ?"
-        try:
-            with self._get_connection() as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.cursor()
-                cursor.execute(query, (user_id,))
-                row = cursor.fetchone()
-                if row:
-                    return dict(row)
-        except Exception as e:
-            print(f"Error fetching user by ID: {e}")
-        return None
-
-    def get_all_users(self):
-        query = "SELECT id, username, role FROM users"
-        try:
-            with self._get_connection() as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.cursor()
-                cursor.execute(query)
-                return [dict(row) for row in cursor.fetchall()]
-        except Exception as e:
-            print(f"Error fetching all users: {e}")
-        return []
-
-    def add_user(self, username, password, role='viewer'):
-        from werkzeug.security import generate_password_hash
-        query = "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)"
-        try:
-            with self._get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(query, (username, generate_password_hash(password), role))
-                conn.commit()
-                return cursor.lastrowid
-        except Exception as e:
-            print(f"Error adding user: {e}")
-            return None
 
     def delete_detections(self, ids):
         if not ids:

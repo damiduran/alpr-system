@@ -202,7 +202,7 @@ h1, h2, h3, .brand h1, .brand h2 {
 
 .login-card {
     width: 100%;
-    max-width: 420px;
+    max-width: 460px;
     padding: 40px;
     border-radius: var(--border-radius-lg);
     background: var(--color-glass-surface);
@@ -210,6 +210,48 @@ h1, h2, h3, .brand h1, .brand h2 {
     border: 1px solid var(--color-glass-border);
     box-shadow: var(--shadow-premium);
     animation: fadeInScale 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.auth-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin: 20px 0;
+}
+
+.google-btn-container {
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.login-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+}
+
+.spinner-small {
+    width: 18px;
+    height: 18px;
+    border: 2px solid hsla(41, 73%, 43%, 0.2);
+    border-top: 2px solid var(--color-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.login-footer-note {
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--color-text-dim);
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-glass-border);
 }
 
 @keyframes fadeInScale {

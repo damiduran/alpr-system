@@ -48,6 +48,14 @@ const dom = {
     usernameDisplay: document.getElementById('username-display'),
     userBadge: document.getElementById('user-badge'),
     logoutBtn: document.getElementById('logout-btn'),
+    usersBtn: document.getElementById('users-btn'),
+    usersPanel: document.getElementById('users-panel'),
+    closeUsersBtn: document.getElementById('close-users-btn'),
+    addUserForm: document.getElementById('add-user-form'),
+    newUserEmail: document.getElementById('new-user-email'),
+    newUserRole: document.getElementById('new-user-role'),
+    userMgmtMsg: document.getElementById('user-mgmt-msg'),
+    usersTableBody: document.getElementById('users-table-body'),
     deleteBtn: document.getElementById('delete-btn'),
     exportBtn: document.getElementById('export-btn'),
     
@@ -203,6 +211,32 @@ function registerEventListeners() {
         fetchDetections();
     });
 
+    // Admin Users & Permissions Toggle (Admin only - Tier 3)
+    if (dom.usersBtn) {
+        dom.usersBtn.addEventListener('click', () => {
+            dom.usersPanel.classList.toggle('hidden');
+            if (!dom.usersPanel.classList.contains('hidden')) {
+                fetchAuthorizedUsers();
+            }
+        });
+    }
+
+    if (dom.closeUsersBtn) {
+        dom.closeUsersBtn.addEventListener('click', () => {
+            dom.usersPanel.classList.add('hidden');
+        });
+    }
+
+    if (dom.addUserForm) {
+        dom.addUserForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = dom.newUserEmail.value.trim();
+            const role = dom.newUserRole.value;
+            if (!email) return;
+            await saveUserPermission(email, role, true);
+        });
+    }
+
     // Delete Button Click (Admin only)
     dom.deleteBtn.addEventListener('click', async () => {
         const checkedBoxes = dom.tableBody.querySelectorAll('.row-checkbox:checked');
@@ -298,11 +332,21 @@ function transitionToDashboard(user) {
     dom.userBadge.innerText = user.role;
     dom.userBadge.className = `role-badge ${user.role}`;
     
-    // Toggle delete button visibility based on role (Admin only)
-    if (user.role === 'admin') {
+    // Toggle delete button visibility based on role (Manager & Admin: Tier 2 & Tier 3)
+    if (user.role === 'admin' || user.role === 'manager') {
         dom.deleteBtn.classList.remove('hidden');
     } else {
         dom.deleteBtn.classList.add('hidden');
+    }
+
+    // Toggle Users & Permissions button based on role (Admin only: Tier 3)
+    if (dom.usersBtn) {
+        if (user.role === 'admin') {
+            dom.usersBtn.classList.remove('hidden');
+        } else {
+            dom.usersBtn.classList.add('hidden');
+            if (dom.usersPanel) dom.usersPanel.classList.add('hidden');
+        }
     }
     
     dom.loginView.classList.remove('active');
@@ -318,8 +362,118 @@ function transitionToLogin() {
     state.sortBy = null;
     state.sortOrder = 'none';
     dom.deleteBtn.classList.add('hidden');
+    if (dom.usersBtn) dom.usersBtn.classList.add('hidden');
+    if (dom.usersPanel) dom.usersPanel.classList.add('hidden');
     dom.dashboardView.classList.remove('active');
     dom.loginView.classList.add('active');
+}
+
+// --- ADMIN USER & PERMISSION MANAGEMENT (TIER 3) ---
+
+function showUserMgmtFeedback(text, isError = false) {
+    if (!dom.userMgmtMsg) return;
+    dom.userMgmtMsg.innerText = text;
+    dom.userMgmtMsg.className = `user-mgmt-msg ${isError ? 'error' : 'success'}`;
+    dom.userMgmtMsg.classList.remove('hidden');
+    setTimeout(() => {
+        dom.userMgmtMsg.classList.add('hidden');
+    }, 4000);
+}
+
+async function fetchAuthorizedUsers() {
+    if (!state.user || state.user.role !== 'admin') return;
+    try {
+        const res = await fetch('/api/users');
+        if (!res.ok) throw new Error('Failed to load users');
+        const users = await res.json();
+        renderAuthorizedUsers(users);
+    } catch (e) {
+        console.error('Error fetching users:', e);
+        if (dom.usersTableBody) {
+            dom.usersTableBody.innerHTML = `<tr><td colspan="4" class="text-center" style="color: var(--color-danger);">Failed to load user list.</td></tr>`;
+        }
+    }
+}
+
+function renderAuthorizedUsers(users) {
+    if (!dom.usersTableBody) return;
+    if (!users || users.length === 0) {
+        dom.usersTableBody.innerHTML = `<tr><td colspan="4" class="text-center">No authorized users found.</td></tr>`;
+        return;
+    }
+
+    const currentEmail = (state.user && state.user.username || '').toLowerCase();
+    let html = '';
+    users.forEach(u => {
+        const isSelf = u.email.toLowerCase() === currentEmail;
+        html += `
+            <tr>
+                <td>
+                    <strong>${u.email}</strong>
+                    ${isSelf ? '<span class="role-badge admin" style="margin-left:8px;">You</span>' : ''}
+                </td>
+                <td>
+                    <select class="role-select role-select-inline" onchange="saveUserPermission('${u.email}', this.value, false)" ${isSelf ? 'disabled title="You cannot demote your own active Admin account"' : ''}>
+                        <option value="viewer" ${u.role === 'viewer' ? 'selected' : ''}>VIEWER</option>
+                        <option value="manager" ${u.role === 'manager' ? 'selected' : ''}>MANAGER</option>
+                        <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>ADMIN</option>
+                    </select>
+                </td>
+                <td>${u.added_at || '---'}</td>
+                <td class="text-right">
+                    ${isSelf ? '<span style="color: var(--color-text-dim); font-size: 0.8rem;">Active Admin</span>' : `
+                        <button class="btn btn-danger btn-sm" onclick="removeAuthorizedUser('${u.email}')">
+                            <i class="fa-solid fa-user-minus"></i> <span>Remove</span>
+                        </button>
+                    `}
+                </td>
+            </tr>
+        `;
+    });
+    dom.usersTableBody.innerHTML = html;
+}
+
+async function saveUserPermission(email, role, clearInput = false) {
+    try {
+        const res = await fetch('/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, role })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            if (clearInput && dom.newUserEmail) dom.newUserEmail.value = '';
+            showUserMgmtFeedback(data.message || 'User permissions updated.', false);
+            if (data.users) renderAuthorizedUsers(data.users);
+            else fetchAuthorizedUsers();
+        } else {
+            showUserMgmtFeedback(data.error || 'Failed to update user.', true);
+            fetchAuthorizedUsers();
+        }
+    } catch (e) {
+        showUserMgmtFeedback('Network error updating user permissions.', true);
+    }
+}
+
+async function removeAuthorizedUser(email) {
+    if (!confirm(`Remove dashboard access for ${email}?`)) return;
+    try {
+        const res = await fetch('/api/users', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showUserMgmtFeedback(data.message || `Removed ${email}`, false);
+            if (data.users) renderAuthorizedUsers(data.users);
+            else fetchAuthorizedUsers();
+        } else {
+            showUserMgmtFeedback(data.error || 'Failed to remove user.', true);
+        }
+    } catch (e) {
+        showUserMgmtFeedback('Network error removing user.', true);
+    }
 }
 
 // --- COLUMN SELECTOR LOGIC ---

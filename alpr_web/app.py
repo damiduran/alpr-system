@@ -22,22 +22,31 @@ def get_google_client_id() -> str:
 
 def get_allowed_role_for_email(email: str):
     """
-    Determines the dashboard role ('admin' or 'viewer') for a verified Google email.
-    Checks ALLOWED_ADMIN_EMAILS (falling back to ALLOWED_EMAILS) for admin privileges,
-    and ALLOWED_VIEWER_EMAILS for viewer-only privileges.
+    Determines the dashboard role ('viewer', 'manager', or 'admin') for a verified Google email
+    by checking the SQLite authorized_emails table (falling back to environment variables if needed).
     """
     normalized = (email or '').strip().lower()
     if not normalized:
         return None
 
+    db_role = db.get_email_role(normalized)
+    if db_role:
+        return db_role
+
+    # Fallback check against runtime environment variables (if changed after DB init)
     admin_raw = os.getenv('ALLOWED_ADMIN_EMAILS', os.getenv('ALLOWED_EMAILS', ''))
-    admin_emails = [e.strip().lower() for e in admin_raw.split(',') if e.strip()]
-    if normalized in admin_emails:
+    if normalized in [e.strip().lower() for e in admin_raw.split(',') if e.strip()]:
+        db.upsert_authorized_email(normalized, 'admin')
         return 'admin'
 
+    manager_raw = os.getenv('ALLOWED_MANAGER_EMAILS', '')
+    if normalized in [e.strip().lower() for e in manager_raw.split(',') if e.strip()]:
+        db.upsert_authorized_email(normalized, 'manager')
+        return 'manager'
+
     viewer_raw = os.getenv('ALLOWED_VIEWER_EMAILS', '')
-    viewer_emails = [e.strip().lower() for e in viewer_raw.split(',') if e.strip()]
-    if normalized in viewer_emails:
+    if normalized in [e.strip().lower() for e in viewer_raw.split(',') if e.strip()]:
+        db.upsert_authorized_email(normalized, 'viewer')
         return 'viewer'
 
     return None
@@ -79,7 +88,19 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# Helper decorator for admin check
+# Helper decorator for manager or admin check (Tier 2 & Tier 3: can delete sightings)
+def manager_or_admin_required(f):
+    from functools import wraps
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({"error": "Unauthorized. Please log in."}), 401
+        if session.get('role') not in ('manager', 'admin'):
+            return jsonify({"error": "Forbidden. Manager or Admin access required."}), 403
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Helper decorator for admin check (Tier 3: can manage users & permissions)
 def admin_required(f):
     from functools import wraps
     @wraps(f)
@@ -150,6 +171,12 @@ def auth_logout():
 @app.route('/api/auth/me', methods=['GET'])
 def auth_me():
     if 'user_id' in session:
+        # Refresh role from DB in case an Admin promoted/demoted or revoked this user
+        current_role = get_allowed_role_for_email(session['username'])
+        if not current_role:
+            session.clear()
+            return jsonify({"authenticated": False}), 200
+        session['role'] = current_role
         return jsonify({
             "authenticated": True,
             "user": {
@@ -158,6 +185,57 @@ def auth_me():
             }
         })
     return jsonify({"authenticated": False}), 200
+
+
+# --- USER & PERMISSION MANAGEMENT API (Admin Only - Tier 3) ---
+
+@app.route('/api/users', methods=['GET'])
+@admin_required
+def list_users():
+    return jsonify(db.list_authorized_emails())
+
+
+@app.route('/api/users', methods=['POST'])
+@admin_required
+def upsert_user():
+    data = request.get_json() or {}
+    email = (data.get('email') or '').strip().lower()
+    role = (data.get('role') or '').strip().lower()
+
+    if not email or '@' not in email:
+        return jsonify({"error": "A valid Google email address is required."}), 400
+    if role not in ('viewer', 'manager', 'admin'):
+        return jsonify({"error": "Role must be 'viewer', 'manager', or 'admin'."}), 400
+
+    # Prevent an admin from accidentally demoting their own logged-in account
+    if email == session.get('username', '').lower() and role != 'admin':
+        return jsonify({"error": "You cannot demote your own active Admin account."}), 400
+
+    if db.upsert_authorized_email(email, role):
+        return jsonify({
+            "message": f"Saved {email} as {role.upper()}",
+            "users": db.list_authorized_emails()
+        })
+    return jsonify({"error": "Failed to save user permission."}), 500
+
+
+@app.route('/api/users', methods=['DELETE'])
+@admin_required
+def delete_user():
+    data = request.get_json() or {}
+    email = (data.get('email') or '').strip().lower()
+    if not email:
+        return jsonify({"error": "Email address is required."}), 400
+
+    if email == session.get('username', '').lower():
+        return jsonify({"error": "You cannot remove your own active Admin account."}), 400
+
+    if db.remove_authorized_email(email):
+        return jsonify({
+            "message": f"Removed access for {email}",
+            "users": db.list_authorized_emails()
+        })
+    return jsonify({"error": "User not found or could not be removed."}), 404
 
 # --- DETECTIONS API ---
 
@@ -217,7 +295,7 @@ def get_detections():
     return jsonify(processed)
 
 @app.route('/api/detections/delete', methods=['POST'])
-@admin_required
+@manager_or_admin_required
 def delete_detections():
     data = request.get_json() or {}
     ids = data.get('ids', [])

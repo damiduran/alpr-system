@@ -36,12 +36,109 @@ class DBManager:
             raw_json TEXT
         );
         """
+        authorized_emails_schema = """
+        CREATE TABLE IF NOT EXISTS authorized_emails (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE NOT NULL,
+            role TEXT NOT NULL CHECK(role IN ('viewer', 'manager', 'admin')),
+            added_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        """
         try:
             with self._get_connection() as conn:
                 conn.execute(detections_schema)
+                conn.execute(authorized_emails_schema)
                 conn.commit()
+                self._seed_authorized_emails_from_env(conn)
         except Exception as e:
             print(f"Error initializing tables: {e}")
+
+    def _seed_authorized_emails_from_env(self, conn):
+        """Seeds initial admin, manager, and viewer emails from environment variables if not already present."""
+        cursor = conn.cursor()
+        env_mappings = [
+            ('admin', os.getenv('ALLOWED_ADMIN_EMAILS', os.getenv('ALLOWED_EMAILS', ''))),
+            ('manager', os.getenv('ALLOWED_MANAGER_EMAILS', '')),
+            ('viewer', os.getenv('ALLOWED_VIEWER_EMAILS', '')),
+        ]
+        for role, raw_str in env_mappings:
+            for email in [e.strip().lower() for e in raw_str.split(',') if e.strip()]:
+                cursor.execute(
+                    "INSERT OR IGNORE INTO authorized_emails (email, role) VALUES (?, ?)",
+                    (email, role)
+                )
+        conn.commit()
+
+    def get_email_role(self, email: str):
+        normalized = (email or '').strip().lower()
+        if not normalized:
+            return None
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT role FROM authorized_emails WHERE email = ?", (normalized,))
+                row = cursor.fetchone()
+                if row:
+                    return row[0]
+        except Exception as e:
+            print(f"Error fetching email role: {e}")
+        return None
+
+    def list_authorized_emails(self):
+        query = """
+        SELECT id, email, role, added_at
+        FROM authorized_emails
+        ORDER BY
+            CASE role
+                WHEN 'admin' THEN 1
+                WHEN 'manager' THEN 2
+                WHEN 'viewer' THEN 3
+                ELSE 4
+            END,
+            email ASC
+        """
+        try:
+            with self._get_connection() as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute(query)
+                return [dict(r) for r in cursor.fetchall()]
+        except Exception as e:
+            print(f"Error listing authorized emails: {e}")
+            return []
+
+    def upsert_authorized_email(self, email: str, role: str) -> bool:
+        normalized = (email or '').strip().lower()
+        role_norm = (role or '').strip().lower()
+        if not normalized or '@' not in normalized or role_norm not in ('viewer', 'manager', 'admin'):
+            return False
+        query = """
+        INSERT INTO authorized_emails (email, role)
+        VALUES (?, ?)
+        ON CONFLICT(email) DO UPDATE SET role = excluded.role
+        """
+        try:
+            with self._get_connection() as conn:
+                conn.execute(query, (normalized, role_norm))
+                conn.commit()
+                return True
+        except Exception as e:
+            print(f"Error upserting authorized email: {e}")
+            return False
+
+    def remove_authorized_email(self, email: str) -> bool:
+        normalized = (email or '').strip().lower()
+        if not normalized:
+            return False
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM authorized_emails WHERE email = ?", (normalized,))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            print(f"Error removing authorized email: {e}")
+            return False
 
     def insert_detection(self, plate_number, confidence=None, vehicle_make=None, 
                          vehicle_model=None, vehicle_color=None, body_type=None,

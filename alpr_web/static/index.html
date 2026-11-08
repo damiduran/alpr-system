@@ -83,7 +83,12 @@
                         </div>
                     </div>
                     <div class="control-right">
-                        <!-- Delete Selected Button (Admin Only) -->
+                        <!-- Manage Users Button (Admin Only - Tier 3) -->
+                        <button id="users-btn" class="btn btn-primary hidden">
+                            <i class="fa-solid fa-users-gear"></i> <span>Users & Permissions</span>
+                        </button>
+
+                        <!-- Delete Selected Button (Manager & Admin - Tier 2 & 3) -->
                         <button id="delete-btn" class="btn btn-danger hidden">
                             <i class="fa-solid fa-trash-can"></i> <span>Delete</span>
                         </button>
@@ -117,6 +122,60 @@
                         <button id="refresh-btn" class="btn btn-glass">
                             <i class="fa-solid fa-rotate"></i>
                         </button>
+                    </div>
+                </section>
+
+                <!-- Admin User & Permission Management Section (Admin Only - Tier 3) -->
+                <section id="users-panel" class="users-panel glass hidden">
+                    <div class="users-panel-header">
+                        <div>
+                            <h3><i class="fa-solid fa-shield-halved"></i> User Access & Role Management</h3>
+                            <p class="users-subtitle">
+                                Manage authorized Google accounts across the 3 access tiers:
+                                <strong>VIEWER</strong> (View & Export),
+                                <strong>MANAGER</strong> (View, Export & Delete Sightings), and
+                                <strong>ADMIN</strong> (Full Access + User Management).
+                            </p>
+                        </div>
+                        <button id="close-users-btn" class="btn btn-secondary">
+                            <i class="fa-solid fa-xmark"></i> <span>Close</span>
+                        </button>
+                    </div>
+
+                    <form id="add-user-form" class="add-user-form">
+                        <div class="add-user-inputs">
+                            <div class="input-wrapper" style="flex: 1;">
+                                <i class="fa-regular fa-envelope"></i>
+                                <input type="email" id="new-user-email" placeholder="Enter Google email address (e.g. user@gmail.com)" required>
+                            </div>
+                            <select id="new-user-role" class="role-select">
+                                <option value="viewer">VIEWER (View & Export)</option>
+                                <option value="manager">MANAGER (View, Export & Delete)</option>
+                                <option value="admin">ADMIN (Full Access + Manage Users)</option>
+                            </select>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa-solid fa-user-plus"></i> <span>Add / Update User</span>
+                            </button>
+                        </div>
+                        <div id="user-mgmt-msg" class="user-mgmt-msg hidden"></div>
+                    </form>
+
+                    <div class="users-table-wrapper">
+                        <table id="users-table">
+                            <thead>
+                                <tr>
+                                    <th>Google Email</th>
+                                    <th>Assigned Tier</th>
+                                    <th>Added Date</th>
+                                    <th class="text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body">
+                                <tr>
+                                    <td colspan="4" class="text-center">Loading authorized users...</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </section>
 

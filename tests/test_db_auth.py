@@ -48,15 +48,30 @@ class TestDBAndGoogleAuth(unittest.TestCase):
         emails = [u['email'] for u in list_res.get_json()]
         self.assertIn('admin@evergrand.com', emails)
 
-        # Admin can add a new manager user
-        add_res = self.client.post('/api/users', json={"email": "newboss@evergrand.com", "role": "manager"})
+        # Admin can add a new manager user with a Telegram User ID
+        add_res = self.client.post('/api/users', json={
+            "email": "newboss@evergrand.com",
+            "role": "manager",
+            "telegram_id": "987654321"
+        })
         self.assertEqual(add_res.status_code, 200)
         self.assertEqual(self.db.get_email_role('newboss@evergrand.com'), 'manager')
+        self.assertTrue(self.db.is_telegram_id_authorized('987654321'))
+        self.assertFalse(self.db.is_telegram_id_authorized('111111111'))
 
-        # Admin can promote/demote that user to viewer
+        # Non-numeric Telegram User ID should be rejected (400)
+        bad_tg = self.client.post('/api/users', json={
+            "email": "newboss@evergrand.com",
+            "role": "manager",
+            "telegram_id": "not-a-number"
+        })
+        self.assertEqual(bad_tg.status_code, 400)
+
+        # Admin can promote/demote that user to viewer while preserving their Telegram ID
         upd_res = self.client.post('/api/users', json={"email": "newboss@evergrand.com", "role": "viewer"})
         self.assertEqual(upd_res.status_code, 200)
         self.assertEqual(self.db.get_email_role('newboss@evergrand.com'), 'viewer')
+        self.assertTrue(self.db.is_telegram_id_authorized('987654321'))
 
         # Self-lockout protection: Admin cannot demote or delete themselves
         self_demote = self.client.post('/api/users', json={"email": "admin@evergrand.com", "role": "viewer"})
@@ -64,10 +79,11 @@ class TestDBAndGoogleAuth(unittest.TestCase):
         self_del = self.client.delete('/api/users', json={"email": "admin@evergrand.com"})
         self.assertEqual(self_del.status_code, 400)
 
-        # Admin can remove another user
+        # Admin can remove another user (which also revokes their Telegram ID access)
         del_res = self.client.delete('/api/users', json={"email": "newboss@evergrand.com"})
         self.assertEqual(del_res.status_code, 200)
         self.assertIsNone(self.db.get_email_role('newboss@evergrand.com'))
+        self.assertFalse(self.db.is_telegram_id_authorized('987654321'))
 
     @patch('alpr_web.app.verify_google_id_token')
     def test_tier2_manager_can_delete_sightings_but_cannot_manage_users(self, mock_verify):

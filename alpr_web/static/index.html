@@ -144,9 +144,13 @@
 
                     <form id="add-user-form" class="add-user-form">
                         <div class="add-user-inputs">
-                            <div class="input-wrapper" style="flex: 1;">
+                            <div class="input-wrapper" style="flex: 2; min-width: 240px;">
                                 <i class="fa-regular fa-envelope"></i>
-                                <input type="email" id="new-user-email" placeholder="Enter Google email address (e.g. user@gmail.com)" required>
+                                <input type="email" id="new-user-email" placeholder="Google email address (e.g. user@gmail.com)" required>
+                            </div>
+                            <div class="input-wrapper" style="flex: 1.5; min-width: 210px;">
+                                <i class="fa-brands fa-telegram"></i>
+                                <input type="text" id="new-user-telegram" inputmode="numeric" pattern="[0-9]*" placeholder="Telegram User ID (optional)">
                             </div>
                             <select id="new-user-role" class="role-select">
                                 <option value="viewer">VIEWER (View & Export)</option>
@@ -166,13 +170,14 @@
                                 <tr>
                                     <th>Google Email</th>
                                     <th>Assigned Tier</th>
+                                    <th>Telegram User ID</th>
                                     <th>Added Date</th>
                                     <th class="text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="users-table-body">
                                 <tr>
-                                    <td colspan="4" class="text-center">Loading authorized users...</td>
+                                    <td colspan="5" class="text-center">Loading authorized users...</td>
                                 </tr>
                             </tbody>
                         </table>

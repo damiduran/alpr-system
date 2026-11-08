@@ -112,13 +112,30 @@ class ALPRAgent:
         while self.running:
             time.sleep(1)
 
+    def is_user_authorized(self, chat_id) -> bool:
+        """Checks if a Telegram chat_id is authorized via SQLite authorized_emails or fallback .env AUTHORIZED_USERS."""
+        if self.db.is_telegram_id_authorized(chat_id):
+            return True
+        if self.authorized_users and chat_id in self.authorized_users:
+            return True
+        return False
+
     def process_update(self, update):
         message = update.get('message', {})
         chat_id = message.get('chat', {}).get('id')
+        if not chat_id:
+            return
 
-        # Security: Check if user is authorized
-        if self.authorized_users and chat_id not in self.authorized_users:
+        # Security: Check if user is authorized in DB or .env fallback
+        if not self.is_user_authorized(chat_id):
             print(f"--- [SECURITY] Unauthorized access attempt from ID: {chat_id} ---")
+            try:
+                self.bot.send_message(
+                    chat_id,
+                    f"🔒 Access restricted. Please ask an Evergrand Admin to add your Telegram User ID ({chat_id}) in the ALPR Dashboard."
+                )
+            except Exception:
+                pass
             return
 
         if 'photo' in message:

@@ -53,6 +53,7 @@ const dom = {
     closeUsersBtn: document.getElementById('close-users-btn'),
     addUserForm: document.getElementById('add-user-form'),
     newUserEmail: document.getElementById('new-user-email'),
+    newUserTelegram: document.getElementById('new-user-telegram'),
     newUserRole: document.getElementById('new-user-role'),
     userMgmtMsg: document.getElementById('user-mgmt-msg'),
     usersTableBody: document.getElementById('users-table-body'),
@@ -232,8 +233,9 @@ function registerEventListeners() {
             e.preventDefault();
             const email = dom.newUserEmail.value.trim();
             const role = dom.newUserRole.value;
+            const telegramId = dom.newUserTelegram ? dom.newUserTelegram.value.trim() : '';
             if (!email) return;
-            await saveUserPermission(email, role, true);
+            await saveUserPermission(email, role, telegramId, true);
         });
     }
 
@@ -398,7 +400,7 @@ async function fetchAuthorizedUsers() {
 function renderAuthorizedUsers(users) {
     if (!dom.usersTableBody) return;
     if (!users || users.length === 0) {
-        dom.usersTableBody.innerHTML = `<tr><td colspan="4" class="text-center">No authorized users found.</td></tr>`;
+        dom.usersTableBody.innerHTML = `<tr><td colspan="5" class="text-center">No authorized users found.</td></tr>`;
         return;
     }
 
@@ -406,6 +408,7 @@ function renderAuthorizedUsers(users) {
     let html = '';
     users.forEach(u => {
         const isSelf = u.email.toLowerCase() === currentEmail;
+        const tgVal = u.telegram_id || '';
         html += `
             <tr>
                 <td>
@@ -413,11 +416,24 @@ function renderAuthorizedUsers(users) {
                     ${isSelf ? '<span class="role-badge admin" style="margin-left:8px;">You</span>' : ''}
                 </td>
                 <td>
-                    <select class="role-select role-select-inline" onchange="saveUserPermission('${u.email}', this.value, false)" ${isSelf ? 'disabled title="You cannot demote your own active Admin account"' : ''}>
+                    <select class="role-select role-select-inline" onchange="saveUserPermission('${u.email}', this.value, null, false)" ${isSelf ? 'disabled title="You cannot demote your own active Admin account"' : ''}>
                         <option value="viewer" ${u.role === 'viewer' ? 'selected' : ''}>VIEWER</option>
                         <option value="manager" ${u.role === 'manager' ? 'selected' : ''}>MANAGER</option>
                         <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>ADMIN</option>
                     </select>
+                </td>
+                <td>
+                    <div class="tg-inline-group">
+                        <input
+                            type="text"
+                            class="tg-inline-input"
+                            value="${tgVal}"
+                            placeholder="Not linked"
+                            inputmode="numeric"
+                            onkeydown="if(event.key==='Enter'){event.preventDefault(); this.blur();}"
+                            onchange="saveUserPermission('${u.email}', '${u.role}', this.value.trim(), false)"
+                        >
+                    </div>
                 </td>
                 <td>${u.added_at || '---'}</td>
                 <td class="text-right">
@@ -433,16 +449,23 @@ function renderAuthorizedUsers(users) {
     dom.usersTableBody.innerHTML = html;
 }
 
-async function saveUserPermission(email, role, clearInput = false) {
+async function saveUserPermission(email, role, telegramId = null, clearInput = false) {
     try {
+        const payload = { email, role };
+        if (telegramId !== null && telegramId !== undefined) {
+            payload.telegram_id = telegramId;
+        }
         const res = await fetch('/api/users', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, role })
+            body: JSON.stringify(payload)
         });
         const data = await res.json();
         if (res.ok) {
-            if (clearInput && dom.newUserEmail) dom.newUserEmail.value = '';
+            if (clearInput) {
+                if (dom.newUserEmail) dom.newUserEmail.value = '';
+                if (dom.newUserTelegram) dom.newUserTelegram.value = '';
+            }
             showUserMgmtFeedback(data.message || 'User permissions updated.', false);
             if (data.users) renderAuthorizedUsers(data.users);
             else fetchAuthorizedUsers();

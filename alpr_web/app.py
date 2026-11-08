@@ -201,19 +201,25 @@ def upsert_user():
     data = request.get_json() or {}
     email = (data.get('email') or '').strip().lower()
     role = (data.get('role') or '').strip().lower()
+    telegram_id = data.get('telegram_id')
 
     if not email or '@' not in email:
         return jsonify({"error": "A valid Google email address is required."}), 400
     if role not in ('viewer', 'manager', 'admin'):
         return jsonify({"error": "Role must be 'viewer', 'manager', or 'admin'."}), 400
 
+    if telegram_id is not None:
+        telegram_id = str(telegram_id).strip()
+        if telegram_id and not telegram_id.isdigit():
+            return jsonify({"error": "Telegram User ID must contain only digits (e.g. 1234567890)."}), 400
+
     # Prevent an admin from accidentally demoting their own logged-in account
     if email == session.get('username', '').lower() and role != 'admin':
         return jsonify({"error": "You cannot demote your own active Admin account."}), 400
 
-    if db.upsert_authorized_email(email, role):
+    if db.upsert_authorized_email(email, role, telegram_id=telegram_id):
         return jsonify({
-            "message": f"Saved {email} as {role.upper()}",
+            "message": f"Saved {email} ({role.upper()})",
             "users": db.list_authorized_emails()
         })
     return jsonify({"error": "Failed to save user permission."}), 500

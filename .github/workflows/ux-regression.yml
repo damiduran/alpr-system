@@ -1,0 +1,62 @@
+name: ALPR Desktop & Mobile UX Regression Guard
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-and-ux-audit:
+    runs-on: ubuntu-latest
+    env:
+      GOOGLE_CLIENT_ID: ci-mock-google-client-id.apps.googleusercontent.com
+      FLASK_SECRET_KEY: ci-test-flask-secret-key
+      ALLOWED_ADMIN_EMAILS: ci-admin@evergrand.info
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies & Playwright
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt playwright
+          playwright install chromium --with-deps
+
+      - name: Run ALPR unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Run Desktop, iPhone & Android UX + PWA Audit
+        run: |
+          python -c "from alpr_web.app import app; app.run(host='127.0.0.1', port=18080, debug=False)" >/tmp/alpr_ci.log 2>&1 &
+          SERVER_PID=$!
+          trap "kill $SERVER_PID 2>/dev/null || true" EXIT
+
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:18080/ >/dev/null && break
+            sleep 0.5
+          done
+
+          ALPR_COOKIE=$(python -c "
+          from alpr_web.app import app, db
+          db.upsert_authorized_email('ci-admin@evergrand.info', 'admin')
+          with app.test_request_context():
+              from flask.sessions import SecureCookieSessionInterface
+              s = SecureCookieSessionInterface().get_signing_serializer(app)
+              print(s.dumps({'user_id': 'ci-admin@evergrand.info', 'username': 'ci-admin@evergrand.info', 'role': 'admin'}))
+          ")
+
+          python tests/ux_audit.py --url http://127.0.0.1:18080/ --name alpr_login --out-dir ux_audit_artifacts
+          python tests/ux_audit.py --url http://127.0.0.1:18080/ --name alpr_dashboard --out-dir ux_audit_artifacts --cookie "session=${ALPR_COOKIE}"
+
+      - name: Upload UX audit screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alpr-ux-audit-screenshots
+          path: ux_audit_artifacts/

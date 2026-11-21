@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from datetime import timedelta
 import requests
 from flask import Flask, request, jsonify, session, send_file, redirect, url_for
 from alpr_data.db_manager import DBManager
@@ -7,6 +8,18 @@ from PIL import Image
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'dev_key_for_alpr_dashboard_123')
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
+
+@app.after_request
+def add_mobile_auth_headers(response):
+    """Ensure Google Identity Services OAuth popups work reliably on mobile & desktop browsers."""
+    content_type = response.headers.get('Content-Type', '')
+    if 'text/html' in content_type:
+        response.headers.setdefault('Cross-Origin-Opener-Policy', 'same-origin-allow-popups')
+    return response
 
 # Initialize DBManager
 db = DBManager()
@@ -112,12 +125,31 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# Serve SPA
+# Serve SPA & PWA Assets
 @app.route('/')
 def index():
     # If the user is not logged in, we serve the SPA which defaults to the login view.
     # The client-side JS handles checking /api/auth/me to decide what screen to display.
     return send_file(os.path.join(app.static_folder, 'index.html'))
+
+
+@app.route('/manifest.json')
+def serve_manifest():
+    return send_file(
+        os.path.join(app.static_folder, 'manifest.json'),
+        mimetype='application/manifest+json'
+    )
+
+
+@app.route('/sw.js')
+def serve_service_worker():
+    resp = send_file(
+        os.path.join(app.static_folder, 'sw.js'),
+        mimetype='application/javascript'
+    )
+    resp.headers['Service-Worker-Allowed'] = '/'
+    resp.headers['Cache-Control'] = 'no-cache'
+    return resp
 
 # --- AUTH API (Google OAuth 2.0) ---
 
@@ -152,6 +184,7 @@ def auth_google():
     if not role:
         return jsonify({"error": f"Unauthorized email address: {email}"}), 403
 
+    session.permanent = True
     session['user_id'] = email
     session['username'] = email
     session['role'] = role

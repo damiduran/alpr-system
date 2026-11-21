@@ -2,8 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#f9f8f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="ALPR Portal">
     <title>ALPR Intelligence Dashboard</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,8 +38,12 @@
                     <h1>ALPR <span>SECURE</span></h1>
                     <p>Sign in with your authorized Google account to access surveillance logs</p>
                 </div>
-                <div class="login- divider"></div>
+                <div class="login-divider"></div>
                 <div class="auth-actions">
+                    <div id="webview-warning" class="error-msg warning-msg hidden">
+                        <i class="fa-solid fa-mobile-screen-button"></i>
+                        <span>In-app browser detected. If Google Sign-In is blocked, tap the menu and choose <strong>Open in Safari / Chrome</strong>.</span>
+                    </div>
                     <div id="login-warning" class="error-msg warning-msg hidden">
                         <i class="fa-solid fa-triangle-exclamation"></i>
                         <span>Google Auth not configured. Set <code>GOOGLE_CLIENT_ID</code> in <code>.env</code>.</span>
@@ -61,8 +72,11 @@
                         <img src="EvergrandT.png" alt="Evergrand Logo" class="brand-logo-small">
                         <h2>ALPR <span>System v3.0</span></h2>
                     </div>
+                    <button id="mobile-menu-btn" class="mobile-menu-btn" type="button" aria-label="Toggle navigation menu" aria-expanded="false">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
                 </div>
-                <div class="header-right">
+                <div class="header-right" id="header-right">
                     <div class="user-profile">
                         <span id="user-badge" class="role-badge">Role</span>
                         <span id="username-display">Username</span>
@@ -184,7 +198,7 @@
                     </div>
                 </section>
 
-                <!-- Data Table Card -->
+                <!-- Data Table Card (Desktop Table + Mobile Touch Cards) -->
                 <section class="table-container glass">
                     <table id="detections-table">
                         <thead>
@@ -207,6 +221,10 @@
                             </tr>
                         </tbody>
                     </table>
+                    <!-- Touch-friendly mobile card list (visible on <= 768px) -->
+                    <div id="mobile-cards-container" class="mobile-cards-container">
+                        <div class="mobile-card-empty">Loading sightings database...</div>
+                    </div>
                 </section>
             </main>
         </div>

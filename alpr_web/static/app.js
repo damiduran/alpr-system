@@ -40,11 +40,14 @@ const dom = {
     loginView: document.getElementById('login-view'),
     dashboardView: document.getElementById('dashboard-view'),
     googleSigninBtn: document.getElementById('google-signin-btn'),
+    webviewWarning: document.getElementById('webview-warning'),
     loginWarning: document.getElementById('login-warning'),
     loginLoading: document.getElementById('login-loading'),
     loginError: document.getElementById('login-error'),
     errorText: document.getElementById('error-text'),
     
+    mobileMenuBtn: document.getElementById('mobile-menu-btn'),
+    headerRight: document.getElementById('header-right'),
     usernameDisplay: document.getElementById('username-display'),
     userBadge: document.getElementById('user-badge'),
     logoutBtn: document.getElementById('logout-btn'),
@@ -68,6 +71,7 @@ const dom = {
     
     tableHeaders: document.getElementById('table-headers'),
     tableBody: document.getElementById('table-body'),
+    mobileCardsContainer: document.getElementById('mobile-cards-container'),
     
     imageModal: document.getElementById('image-modal'),
     modalImage: document.getElementById('modal-image'),
@@ -79,13 +83,28 @@ const dom = {
     modalClose: document.querySelector('.modal-close')
 };
 
+let gsiInitialized = false;
+let gsiClientIdCache = '';
+let lastRenderedGoogleBtnWidth = 0;
+
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
+    detectRestrictedWebview();
     initGoogleSignIn();
     checkSession();
     registerEventListeners();
     initColumnCheckboxes();
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
 });
+
+function detectRestrictedWebview() {
+    const ua = navigator.userAgent || '';
+    if (/FBAN|FBAV|Instagram|Line\/|MicroMessenger|Snapchat/i.test(ua) && dom.webviewWarning) {
+        dom.webviewWarning.classList.remove('hidden');
+    }
+}
 
 // --- AUTHENTICATION FLOWS (Google OAuth 2.0) ---
 
@@ -98,36 +117,61 @@ async function initGoogleSignIn() {
             if (dom.loginWarning) dom.loginWarning.classList.remove('hidden');
             return;
         }
+        gsiClientIdCache = clientId;
         renderGoogleButtonWithRetry(clientId, 0);
     } catch (e) {
         console.error('Failed to fetch Google Auth config:', e);
     }
 }
 
+function computeGoogleButtonWidth() {
+    const container = dom.googleSigninBtn;
+    const available = container ? Math.floor(container.getBoundingClientRect().width) : Math.floor(window.innerWidth - 72);
+    return Math.max(220, Math.min(340, available || 280));
+}
+
+function renderResponsiveGoogleButton() {
+    if (!dom.googleSigninBtn || !window.google || !window.google.accounts || !window.google.accounts.id) return;
+    const width = computeGoogleButtonWidth();
+    if (Math.abs(width - lastRenderedGoogleBtnWidth) < 8 && lastRenderedGoogleBtnWidth > 0) return;
+    lastRenderedGoogleBtnWidth = width;
+    dom.googleSigninBtn.innerHTML = '';
+    window.google.accounts.id.renderButton(dom.googleSigninBtn, {
+        theme: 'outline',
+        size: 'large',
+        width: width,
+        text: 'signin_with',
+        shape: 'rectangular',
+        logo_alignment: 'left'
+    });
+}
+
 function renderGoogleButtonWithRetry(clientId, attempt) {
     if (window.google && window.google.accounts && window.google.accounts.id) {
-        window.google.accounts.id.initialize({
-            client_id: clientId,
-            callback: handleGoogleCredentialResponse,
-            context: 'signin',
-            ux_mode: 'popup',
-            auto_select: false,
-            itp_support: true
-        });
-        if (dom.googleSigninBtn) {
-            window.google.accounts.id.renderButton(dom.googleSigninBtn, {
-                theme: 'outline',
-                size: 'large',
-                width: 340,
-                text: 'signin_with',
-                shape: 'rectangular',
-                logo_alignment: 'left'
+        if (!gsiInitialized) {
+            window.google.accounts.id.initialize({
+                client_id: clientId,
+                callback: handleGoogleCredentialResponse,
+                context: 'signin',
+                ux_mode: 'popup',
+                auto_select: false,
+                itp_support: true,
+                use_fedcm_for_prompt: true
             });
+            gsiInitialized = true;
         }
+        renderResponsiveGoogleButton();
     } else if (attempt < 25) {
         setTimeout(() => renderGoogleButtonWithRetry(clientId, attempt + 1), 200);
     }
 }
+
+let googleBtnResizeTimer;
+window.addEventListener('resize', () => {
+    if (!gsiInitialized || !dom.loginView || !dom.loginView.classList.contains('active')) return;
+    clearTimeout(googleBtnResizeTimer);
+    googleBtnResizeTimer = setTimeout(renderResponsiveGoogleButton, 180);
+});
 
 async function handleGoogleCredentialResponse(response) {
     dom.loginError.classList.add('hidden');
@@ -171,10 +215,51 @@ async function checkSession() {
     }
 }
 
+function closeMobileNav() {
+    if (!dom.headerRight || !dom.mobileMenuBtn) return;
+    dom.headerRight.classList.remove('open');
+    dom.mobileMenuBtn.setAttribute('aria-expanded', 'false');
+    dom.mobileMenuBtn.innerHTML = '<i class="fa-solid fa-bars"></i>';
+}
+
+function getSelectedDetectionIds() {
+    const tableChecked = dom.tableBody ? Array.from(dom.tableBody.querySelectorAll('.row-checkbox:checked')) : [];
+    const cardChecked = dom.mobileCardsContainer ? Array.from(dom.mobileCardsContainer.querySelectorAll('.mobile-row-checkbox:checked')) : [];
+    const idSet = new Set();
+    [...tableChecked, ...cardChecked].forEach(cb => {
+        const parsed = parseInt(cb.value, 10);
+        if (!Number.isNaN(parsed)) idSet.add(parsed);
+    });
+    return Array.from(idSet);
+}
+
+function syncRowCheckbox(id, checked) {
+    if (dom.tableBody) {
+        const tCb = dom.tableBody.querySelector(`.row-checkbox[value="${id}"]`);
+        if (tCb) tCb.checked = checked;
+    }
+    if (dom.mobileCardsContainer) {
+        const cCb = dom.mobileCardsContainer.querySelector(`.mobile-row-checkbox[value="${id}"]`);
+        if (cCb) cCb.checked = checked;
+    }
+}
+
 function registerEventListeners() {
+    // Mobile Navigation Menu Toggle
+    if (dom.mobileMenuBtn && dom.headerRight) {
+        dom.mobileMenuBtn.addEventListener('click', () => {
+            const isOpen = dom.headerRight.classList.toggle('open');
+            dom.mobileMenuBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            dom.mobileMenuBtn.innerHTML = isOpen
+                ? '<i class="fa-solid fa-xmark"></i>'
+                : '<i class="fa-solid fa-bars"></i>';
+        });
+    }
+
     // Logout Click
     dom.logoutBtn.addEventListener('click', async () => {
         try {
+            closeMobileNav();
             await fetch('/api/auth/logout', { method: 'POST' });
             transitionToLogin();
         } catch (e) {
@@ -239,15 +324,13 @@ function registerEventListeners() {
         });
     }
 
-    // Delete Button Click (Admin only)
+    // Delete Button Click (Admin / Manager)
     dom.deleteBtn.addEventListener('click', async () => {
-        const checkedBoxes = dom.tableBody.querySelectorAll('.row-checkbox:checked');
-        if (checkedBoxes.length === 0) {
+        const ids = getSelectedDetectionIds();
+        if (ids.length === 0) {
             alert('Please select at least one sighting to delete.');
             return;
         }
-
-        const ids = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
         const confirmMsg = `Are you sure you want to delete the ${ids.length} selected record(s) from the database? This action is permanent.`;
         if (!confirm(confirmMsg)) {
             return;
@@ -279,11 +362,10 @@ function registerEventListeners() {
     // Export Button Click (Admin & Viewer)
     dom.exportBtn.addEventListener('click', () => {
         const queryParams = new URLSearchParams();
-        const checkedBoxes = dom.tableBody.querySelectorAll('.row-checkbox:checked');
+        const selectedIds = getSelectedDetectionIds();
         
-        if (checkedBoxes.length > 0) {
-            const ids = Array.from(checkedBoxes).map(cb => cb.value).join(',');
-            queryParams.append('ids', ids);
+        if (selectedIds.length > 0) {
+            queryParams.append('ids', selectedIds.join(','));
         } else if (state.searchQuery) {
             queryParams.append('plate', state.searchQuery);
         }
@@ -307,17 +389,27 @@ function registerEventListeners() {
         toggleImageZoom(e);
     });
 
-    // Image Panning on Mouse Move (when zoomed)
+    // Image Panning on Mouse Move & Touch Move (when zoomed)
     const imgContainer = dom.modalImage.parentElement;
     if (imgContainer) {
+        const updatePanOrigin = (clientX, clientY) => {
+            if (!dom.modalImage.classList.contains('zoomed')) return;
+            const rect = imgContainer.getBoundingClientRect();
+            const x = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+            const y = Math.max(0, Math.min(100, ((clientY - rect.top) / rect.height) * 100));
+            dom.modalImage.style.transformOrigin = `${x}% ${y}%`;
+        };
+
         imgContainer.addEventListener('mousemove', (e) => {
-            if (dom.modalImage.classList.contains('zoomed')) {
-                const rect = imgContainer.getBoundingClientRect();
-                const x = ((e.clientX - rect.left) / rect.width) * 100;
-                const y = ((e.clientY - rect.top) / rect.height) * 100;
-                dom.modalImage.style.transformOrigin = `${x}% ${y}%`;
-            }
+            updatePanOrigin(e.clientX, e.clientY);
         });
+
+        imgContainer.addEventListener('touchmove', (e) => {
+            if (dom.modalImage.classList.contains('zoomed') && e.touches.length === 1) {
+                e.preventDefault();
+                updatePanOrigin(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: false });
     }
 }
 
@@ -368,6 +460,11 @@ function transitionToLogin() {
     if (dom.usersPanel) dom.usersPanel.classList.add('hidden');
     dom.dashboardView.classList.remove('active');
     dom.loginView.classList.add('active');
+    closeMobileNav();
+    if (gsiInitialized) {
+        lastRenderedGoogleBtnWidth = 0;
+        requestAnimationFrame(renderResponsiveGoogleButton);
+    }
 }
 
 // --- ADMIN USER & PERMISSION MANAGEMENT (TIER 3) ---
@@ -551,6 +648,11 @@ function renderTableHeaders() {
             checkboxes.forEach(cb => {
                 cb.checked = e.target.checked;
             });
+            if (dom.mobileCardsContainer) {
+                dom.mobileCardsContainer.querySelectorAll('.mobile-row-checkbox').forEach(cb => {
+                    cb.checked = e.target.checked;
+                });
+            }
         });
     }
 
@@ -654,6 +756,9 @@ async function fetchDetections() {
     
     try {
         dom.tableBody.innerHTML = `<tr><td colspan="${state.visibleColumns.length + 2}" class="text-center">Loading sightings database...</td></tr>`;
+        if (dom.mobileCardsContainer) {
+            dom.mobileCardsContainer.innerHTML = `<div class="mobile-card-empty">Loading sightings database...</div>`;
+        }
         
         const response = await fetch(`/api/detections?${params.toString()}`);
         if (!response.ok) {
@@ -671,12 +776,18 @@ async function fetchDetections() {
     } catch (e) {
         console.error('Failed to load database logs:', e);
         dom.tableBody.innerHTML = `<tr><td colspan="${state.visibleColumns.length + 2}" class="text-center" style="color: var(--color-danger);"><i class="fa-solid fa-circle-xmark"></i> Failed to query database logs.</td></tr>`;
+        if (dom.mobileCardsContainer) {
+            dom.mobileCardsContainer.innerHTML = `<div class="mobile-card-empty" style="color: var(--color-danger);"><i class="fa-solid fa-circle-xmark"></i> Failed to query database logs.</div>`;
+        }
     }
 }
 
 function renderTableBody() {
     if (state.detections.length === 0) {
         dom.tableBody.innerHTML = `<tr><td colspan="${state.visibleColumns.length + 2}" class="text-center">No sightings found matching filters.</td></tr>`;
+        if (dom.mobileCardsContainer) {
+            dom.mobileCardsContainer.innerHTML = `<div class="mobile-card-empty">No sightings found matching filters.</div>`;
+        }
         return;
     }
     
@@ -685,13 +796,14 @@ function renderTableBody() {
     if (selectAll) selectAll.checked = false;
     
     let html = '';
+    let cardsHtml = '';
     state.detections.forEach(item => {
         html += `<tr class="table-row-hover">`;
         
         // 0. Row Selection Checkbox
         html += `
             <td>
-                <input type="checkbox" class="row-checkbox" value="${item.id}" onclick="event.stopPropagation()">
+                <input type="checkbox" class="row-checkbox" value="${item.id}" onchange="syncRowCheckbox(${item.id}, this.checked)" onclick="event.stopPropagation()">
             </td>
         `;
         
@@ -740,9 +852,56 @@ function renderTableBody() {
         });
         
         html += `</tr>`;
+
+        // 3. Synchronized Mobile Card rendering (<= 768px)
+        const plateText = item.plate_number || 'UNKNOWN';
+        const confVal = (item.confidence !== null && item.confidence !== undefined) ? parseFloat(item.confidence) : null;
+        let confBadgeHtml = '';
+        if (confVal !== null && !Number.isNaN(confVal)) {
+            const confClass = confVal >= 90 ? 'conf-high' : (confVal >= 75 ? 'conf-med' : 'conf-low');
+            confBadgeHtml = `<span class="${confClass}">${confVal.toFixed(1)}%</span>`;
+        }
+
+        const specParts = [];
+        ['vehicle_color', 'vehicle_make', 'vehicle_model', 'year', 'body_type'].forEach(field => {
+            if (item[field]) {
+                const s = String(item[field]);
+                specParts.push(s.charAt(0).toUpperCase() + s.slice(1));
+            }
+        });
+        const specsText = specParts.length > 0 ? specParts.join(' · ') : 'Vehicle details unavailable';
+
+        const thumbHtml = item.file_id
+            ? `<div class="vehicle-thumbnail sighting-card-thumb" onclick="openModal('${item.file_id}', ${item.id})"><img src="/api/media/thumbnail/${item.file_id}" alt="Vehicle" loading="lazy"></div>`
+            : `<div class="vehicle-thumbnail sighting-card-thumb no-image"><i class="fa-solid fa-car" style="color: var(--color-text-dim); font-size: 1.35rem; display: flex; align-items: center; justify-content: center; height: 100%;"></i></div>`;
+
+        const cardOpenAttr = item.file_id ? `onclick="openModal('${item.file_id}', ${item.id})"` : '';
+
+        cardsHtml += `
+            <article class="sighting-card">
+                <div class="sighting-card-check">
+                    <input type="checkbox" class="mobile-row-checkbox" value="${item.id}" aria-label="Select sighting ${plateText}" onchange="syncRowCheckbox(${item.id}, this.checked)" onclick="event.stopPropagation()">
+                </div>
+                ${thumbHtml}
+                <div class="sighting-card-body" ${cardOpenAttr}>
+                    <div class="sighting-card-top">
+                        <span class="plate-badge">${plateText}</span>
+                        ${confBadgeHtml}
+                    </div>
+                    <div class="sighting-card-specs">${specsText}</div>
+                    <div class="sighting-card-meta">
+                        ${item.detection_date ? `<span><i class="fa-regular fa-calendar"></i>${item.detection_date}</span>` : ''}
+                        ${item.detection_time ? `<span><i class="fa-regular fa-clock"></i>${item.detection_time}</span>` : ''}
+                    </div>
+                </div>
+            </article>
+        `;
     });
     
     dom.tableBody.innerHTML = html;
+    if (dom.mobileCardsContainer) {
+        dom.mobileCardsContainer.innerHTML = cardsHtml;
+    }
 }
 
 // --- IMAGE MODAL CONTROLLERS ---

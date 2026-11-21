@@ -50,14 +50,21 @@
     display: none !important;
 }
 
+html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
 body {
     font-family: 'Inter', sans-serif;
     background-color: var(--color-bg-deep);
     color: var(--color-text-main);
     overflow-x: hidden;
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
+    -webkit-tap-highlight-color: transparent;
 }
 
 h1, h2, h3, .brand h1, .brand h2 {
@@ -70,7 +77,7 @@ h1, h2, h3, .brand h1, .brand h2 {
    ========================================================================== */
 
 .glow-sphere {
-    position: absolute;
+    position: fixed;
     border-radius: 50%;
     filter: blur(140px);
     z-index: -1;
@@ -193,7 +200,8 @@ h1, h2, h3, .brand h1, .brand h2 {
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-    padding: 20px;
+    min-height: 100dvh;
+    padding: max(20px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
 }
 
 #login-view.active {
@@ -207,25 +215,35 @@ h1, h2, h3, .brand h1, .brand h2 {
     border-radius: var(--border-radius-lg);
     background: var(--color-glass-surface);
     backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     border: 1px solid var(--color-glass-border);
     box-shadow: var(--shadow-premium);
     animation: fadeInScale 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.login-divider {
+    width: 100%;
+    height: 1px;
+    background: var(--color-glass-border);
+    margin: 18px 0;
 }
 
 .auth-actions {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
     margin: 20px 0;
 }
 
 .google-btn-container {
     width: 100%;
+    max-width: 340px;
     min-height: 44px;
     display: flex;
     justify-content: center;
     align-items: center;
+    overflow: hidden;
 }
 
 .login-status {
@@ -279,7 +297,9 @@ h1, h2, h3, .brand h1, .brand h2 {
 
 .brand-logo-large {
     max-height: 120px;
-    max-width: 340px;
+    max-width: min(340px, 85%);
+    width: auto;
+    height: auto;
     object-fit: contain;
     filter: drop-shadow(0 0 15px hsla(41, 73%, 61%, 0.3));
     animation: pulseGlow 4s ease-in-out infinite alternate;
@@ -389,8 +409,17 @@ h1, h2, h3, .brand h1, .brand h2 {
     padding: 10px 14px;
     border-radius: var(--border-radius-md);
     font-size: 0.85rem;
-    margin-bottom: 24px;
+    margin-bottom: 12px;
+    width: 100%;
+    text-align: left;
     animation: shake 0.3s ease;
+}
+
+.warning-msg {
+    color: hsl(35, 80%, 34%);
+    background-color: hsla(35, 80%, 55%, 0.1);
+    border-color: hsla(35, 80%, 55%, 0.28);
+    animation: none;
 }
 
 .error-msg.hidden {
@@ -621,7 +650,8 @@ header .brand h2 span {
 .users-table-wrapper {
     border: 1px solid var(--color-glass-border);
     border-radius: var(--border-radius-md);
-    overflow: hidden;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     background-color: hsla(40, 20%, 99%, 0.6);
 }
 
@@ -804,7 +834,8 @@ header .brand h2 span {
 
 .table-container {
     border-radius: var(--border-radius-lg);
-    overflow: hidden;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     flex: 1;
 }
 
@@ -1089,4 +1120,399 @@ tbody tr:hover td {
     font-weight: 700;
     color: var(--color-primary);
     letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+   4. Mobile Header Toggle & Mobile Sightings Cards (Hidden on Desktop)
+   ========================================================================== */
+
+.header-left {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.mobile-menu-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--color-glass-border);
+    background: hsla(40, 20%, 98%, 0.85);
+    color: var(--color-text-main);
+    font-size: 1.15rem;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    flex-shrink: 0;
+}
+
+.mobile-menu-btn:hover,
+.mobile-menu-btn[aria-expanded="true"] {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: hsla(41, 73%, 43%, 0.08);
+}
+
+.mobile-cards-container {
+    display: none;
+}
+
+.mobile-card-empty {
+    text-align: center;
+    padding: 32px 16px;
+    color: var(--color-text-muted);
+    font-size: 0.92rem;
+}
+
+.sighting-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px;
+    border-bottom: 1px solid var(--color-glass-border);
+    background: hsla(40, 30%, 100%, 0.55);
+    transition: var(--transition-smooth);
+}
+
+.sighting-card:last-child {
+    border-bottom: none;
+}
+
+.sighting-card:active {
+    background: hsla(41, 73%, 45%, 0.06);
+}
+
+.sighting-card-check {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 4px;
+}
+
+.sighting-card-check input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--color-primary);
+    cursor: pointer;
+}
+
+.sighting-card-thumb {
+    width: 68px;
+    height: 68px;
+    flex-shrink: 0;
+    border-radius: 10px;
+}
+
+.sighting-card-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.sighting-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.sighting-card-specs {
+    font-size: 0.88rem;
+    color: var(--color-text-main);
+    font-weight: 500;
+    line-height: 1.35;
+}
+
+.sighting-card-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 0.78rem;
+    color: var(--color-text-dim);
+}
+
+.sighting-card-meta i {
+    margin-right: 4px;
+    color: var(--color-primary);
+}
+
+/* ==========================================================================
+   5. Responsive Breakpoints (Preserving Desktop > 1024px)
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+    header {
+        padding: 14px 20px;
+    }
+
+    .dashboard-content {
+        padding: 20px;
+        gap: 18px;
+    }
+
+    .control-panel {
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 14px 16px;
+    }
+
+    .control-left {
+        flex: 1 1 260px;
+    }
+
+    .search-box {
+        width: 100%;
+    }
+
+    .control-right {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Login mobile polish */
+    .login-card {
+        padding: 28px 20px;
+    }
+
+    .brand {
+        margin-bottom: 20px;
+    }
+
+    .brand-logo-container {
+        margin-bottom: 14px;
+    }
+
+    .brand-logo-large {
+        max-height: 92px;
+    }
+
+    .brand h1 {
+        font-size: 1.55rem;
+    }
+
+    /* Compact sticky header + collapsible drawer */
+    header {
+        flex-direction: column;
+        align-items: stretch;
+        padding: max(12px, env(safe-area-inset-top)) 16px 12px;
+        gap: 0;
+    }
+
+    .header-left {
+        width: 100%;
+    }
+
+    .brand-logo-small {
+        max-height: 36px;
+        max-width: 120px;
+        margin-right: 10px;
+    }
+
+    header .brand h2 {
+        font-size: 1.08rem;
+    }
+
+    .mobile-menu-btn {
+        display: inline-flex;
+    }
+
+    .header-right {
+        display: none;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding-top: 14px;
+        margin-top: 12px;
+        border-top: 1px solid var(--color-glass-border);
+    }
+
+    .header-right.open {
+        display: flex;
+    }
+
+    .user-profile {
+        justify-content: space-between;
+        padding: 10px 12px;
+        border-radius: var(--border-radius-md);
+        background: hsla(40, 20%, 98%, 0.7);
+        border: 1px solid var(--color-glass-border);
+    }
+
+    #username-display {
+        font-size: 0.85rem;
+        word-break: break-all;
+    }
+
+    #logout-btn {
+        width: 100%;
+        min-height: 44px;
+    }
+
+    /* Dashboard spacing */
+    .dashboard-content {
+        padding: 14px 12px calc(24px + env(safe-area-inset-bottom));
+        gap: 14px;
+    }
+
+    /* Control panel */
+    .control-panel {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 14px;
+        gap: 12px;
+    }
+
+    .control-left {
+        width: 100%;
+        flex: none;
+    }
+
+    .control-right {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .control-right .btn,
+    .control-right .column-selector-container {
+        width: 100%;
+    }
+
+    .control-right .btn {
+        min-height: 44px;
+        padding: 10px 12px;
+        font-size: 0.88rem;
+    }
+
+    .column-selector-container .btn {
+        width: 100%;
+    }
+
+    #refresh-btn {
+        grid-column: span 2;
+    }
+
+    .dropdown-menu {
+        left: 0;
+        right: auto;
+        width: min(260px, calc(100vw - 48px));
+    }
+
+    /* Prevent iOS Safari auto-zoom on form controls */
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+
+    .search-box input {
+        min-height: 46px;
+    }
+
+    /* Switch detections view from wide table -> touch-friendly mobile cards */
+    #detections-table {
+        display: none;
+    }
+
+    .mobile-cards-container {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .table-container {
+        overflow: hidden;
+    }
+
+    /* Admin Users Panel */
+    .users-panel {
+        padding: 16px;
+        gap: 14px;
+    }
+
+    .users-panel-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .add-user-inputs {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .add-user-inputs .input-wrapper,
+    .add-user-inputs .role-select,
+    .add-user-inputs .btn {
+        width: 100% !important;
+        min-width: 0 !important;
+        flex: none !important;
+        min-height: 46px;
+    }
+
+    /* Image Viewer Modal */
+    .modal {
+        padding: max(14px, env(safe-area-inset-top)) 12px max(16px, env(safe-area-inset-bottom));
+        align-items: center;
+    }
+
+    .modal-close {
+        top: max(12px, env(safe-area-inset-top));
+        right: 12px;
+        width: 44px;
+        height: 44px;
+        font-size: 1.8rem;
+        z-index: 1010;
+        background-color: hsla(40, 30%, 98%, 0.92);
+    }
+
+    .modal-content {
+        gap: 12px;
+        max-height: 92dvh;
+        overflow-y: auto;
+    }
+
+    .modal-image-container {
+        aspect-ratio: 4/3;
+        touch-action: none;
+    }
+
+    .modal-info {
+        padding: 14px 16px;
+        gap: 12px;
+    }
+
+    .modal-info-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .info-item span {
+        font-size: 0.98rem;
+    }
+
+    .info-item span.highlight {
+        font-size: 1.18rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .login-card {
+        padding: 24px 16px;
+    }
+
+    .sighting-card-thumb {
+        width: 58px;
+        height: 58px;
+    }
 }

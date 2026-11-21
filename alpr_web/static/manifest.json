@@ -1,0 +1,25 @@
+{
+  "name": "ALPR - Evergrand Vehicle Intelligence",
+  "short_name": "ALPR",
+  "description": "Evergrand Automatic License Plate Recognition Surveillance Portal",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f9f8f6",
+  "theme_color": "#be8e27",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
